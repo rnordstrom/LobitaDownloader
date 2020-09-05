@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<commands>
+	<command>
+		<handle>lysithea</handle>
+		<automode>AUTO</automode>
+	</command>
+	<command>
+		<handle>holo</handle>
+		<automode>AUTO</automode>
+	</command>
+	<command>
+		<handle>fenrir</handle>
+		<automode>AUTO</automode>
+	</command>
+	<command>
+		<handle>myuri</handle>
+		<automode>AUTO</automode>
+	</command>
+	<command>
+		<handle>ryouko</handle>
+		<automode>AUTO</automode>
+	</command>
+	<command>
+		<handle>nagatoro</handle>
+		<automode>AUTO</automode>
+	</command>
+</commands>

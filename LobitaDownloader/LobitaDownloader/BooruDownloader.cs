@@ -8,7 +8,6 @@ namespace LobitaDownloader
         private IPersistenceManager persistence;
         private IConfigManager config;
         private Dictionary<string, string> tagsDict;
-        private const string rating = "rating:safe";
 
         public BooruDownloader(IPersistenceManager pm, IConfigManager cm)
         {
@@ -16,36 +15,31 @@ namespace LobitaDownloader
             config = cm;
             tagsDict = new Dictionary<string, string>() 
             {
-                {"lysithea", "lysithea_von_ordelia " + rating},
-                {"holo", "holo " + rating},
-                {"fenrir", "fenrir_(shingeki_no_bahamut) " + rating},
-                {"myuri", "myuri_(spice_and_wolf) " + rating},
-                {"ryouko", "ookami_ryouko " + rating},
-                {"nagatoro", "nagatoro " + rating}
+                {"lysithea", "lysithea_von_ordelia"},
+                {"holo", "holo"},
+                {"fenrir", "fenrir_(shingeki_no_bahamut)"},
+                {"myuri", "myuri_(spice_and_wolf)"},
+                {"ryouko", "ookami_ryouko"},
+                {"nagatoro", "nagatoro"}
             };
         }
 
-        public void Download(string[] cmdHandles)
+        public void Download(string[] cmdHandles, SourceQuery apiQuery)
         {
-            List<string> results = new List<string>();
+            List<string> qParams = new List<string>();
 
             foreach (string handle in cmdHandles)
             {
                 if(config.CheckAutoMode(handle) == AutoMode.AUTO 
                     && persistence.CheckLastUpdate(handle) < DateTime.Now)
                 {
-                    results.Add(ApiQuery(ConvertToTag(handle)));
+                    qParams.Add(ConvertToTag(handle));
+                    persistence.Persist(handle, apiQuery(qParams));
+                    qParams.Clear();
                 }
             }
-
-            persistence.Persist(results);
         }
 
         private string ConvertToTag(string cmdHandle) => tagsDict[cmdHandle];
-
-        private string ApiQuery(string tag)
-        {
-            return null;
-        }
     }
 }
