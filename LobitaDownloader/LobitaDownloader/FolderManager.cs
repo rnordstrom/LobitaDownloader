@@ -1,22 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection.Metadata.Ecma335;
 
 namespace LobitaDownloader
 {
-    class FolderManager : IPersistenceManager
+    public class FolderManager : IPersistenceManager
     {
-        private DirectoryInfo directory;
         private const string dataDir = "data";
 
-        public FolderManager(string workingDir)
+        public DirectoryInfo DataDirectory { get; }
+
+        public FolderManager()
         {
-            directory = Directory.CreateDirectory(Path.Join(workingDir, dataDir));
+            DataDirectory = Directory.CreateDirectory(Path.Join(Constants.WorkingDirectory, dataDir));
         }
 
         public DateTime CheckLastUpdate(string cmdHandle)
         {
-            string cmdDir = Path.Join(directory.FullName, cmdHandle);
+            string cmdDir = Path.Join(DataDirectory.FullName, cmdHandle);
 
             if (Directory.Exists(cmdDir))
             {
@@ -30,7 +32,7 @@ namespace LobitaDownloader
 
         public void Persist(string cmdHandle, List<ImageInfo> imageInfos)
         {
-            DirectoryInfo di = Directory.CreateDirectory(Path.Join(directory.FullName, cmdHandle));
+            DirectoryInfo di = Directory.CreateDirectory(Path.Join(DataDirectory.FullName, cmdHandle));
             int counter = 1;
             FileStream fs;
             

@@ -1,6 +1,6 @@
 ﻿namespace LobitaDownloader
 {
-    interface IConfigManager
+    public interface IConfigManager
     {
         public AutoMode CheckAutoMode(string cmdHandle);
     }

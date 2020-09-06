@@ -1,9 +1,7 @@
-﻿using System.Collections.Generic;
-
-namespace LobitaDownloader
+﻿namespace LobitaDownloader
 {
-    interface IDownloader
+    public interface IDownloader
     {
-        public void Download(string[] cmdHandles, SourceQuery query);
+        public void Download(string[] cmdHandles);
     }
 }

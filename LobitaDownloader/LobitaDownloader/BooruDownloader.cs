@@ -1,43 +1,32 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace LobitaDownloader
 {
-    class BooruDownloader : IDownloader
+    public class BooruDownloader : Downloader, IDownloader
     {
-        private IPersistenceManager persistence;
-        private IConfigManager config;
         private Dictionary<string, string> tagsDict;
 
-        public BooruDownloader(IPersistenceManager pm, IConfigManager cm)
+        public BooruDownloader(IPersistenceManager pm, IConfigManager cm) : base(pm, cm)
         {
-            persistence = pm;
-            config = cm;
             tagsDict = new Dictionary<string, string>() 
             {
-                {"lysithea", "lysithea_von_ordelia"},
-                {"holo", "holo"},
-                {"fenrir", "fenrir_(shingeki_no_bahamut)"},
-                {"myuri", "myuri_(spice_and_wolf)"},
-                {"ryouko", "ookami_ryouko"},
-                {"nagatoro", "nagatoro"}
+                {Constants.CmdHandles[0], "lysithea_von_ordelia"},
+                {Constants.CmdHandles[1], "holo"},
+                {Constants.CmdHandles[2], "fenrir_(shingeki_no_bahamut)"},
+                {Constants.CmdHandles[3], "myuri_(spice_and_wolf)"},
+                {Constants.CmdHandles[4], "ookami_ryouko"},
+                {Constants.CmdHandles[5], "nagatoro"}
             };
         }
 
-        public void Download(string[] cmdHandles, SourceQuery apiQuery)
+        public void Download(string[] cmdHandles)
         {
-            List<string> qParams = new List<string>();
+            base.Download(cmdHandles, ApiQuery, ConvertToTag);
+        }
 
-            foreach (string handle in cmdHandles)
-            {
-                if(config.CheckAutoMode(handle) == AutoMode.AUTO 
-                    && persistence.CheckLastUpdate(handle) < DateTime.Now)
-                {
-                    qParams.Add(ConvertToTag(handle));
-                    persistence.Persist(handle, apiQuery(qParams));
-                    qParams.Clear();
-                }
-            }
+        private static List<ImageInfo> ApiQuery(List<string> parameters)
+        {
+            return null;
         }
 
         private string ConvertToTag(string cmdHandle) => tagsDict[cmdHandle];

@@ -4,15 +4,14 @@ using System.Xml.XPath;
 
 namespace LobitaDownloader
 {
-    class XmlManager : IConfigManager
+    public class XmlManager : IConfigManager
     {
-        private XElement doc;
-        private const string configDir = "config";
+        private XDocument doc;
         private const string configFile = "lobitaconfig.xml";
 
-        public XmlManager(string workingDir)
+        public XmlManager()
         {
-            doc = XElement.Load(Path.Join(workingDir, configDir, configFile));
+            doc = XDocument.Load(Path.Join(Constants.WorkingDirectory, configFile));
         }
 
         public AutoMode CheckAutoMode(string cmdHandle)

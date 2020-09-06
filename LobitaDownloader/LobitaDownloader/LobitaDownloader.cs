@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
 
 namespace LobitaDownloader
 {
@@ -12,36 +11,35 @@ namespace LobitaDownloader
 
     public struct ImageInfo
     {
-        public string FileExt { get; }
-        public byte[] Bytes { get; }
+        public string FileExt { get; set; }
+        public byte[] Bytes { get; set; }
+    }
+
+    public static class Constants
+    {
+        public static string WorkingDirectory { get; } 
+            = Directory.GetCurrentDirectory();
+        public static string[] CmdHandles = new string[] {
+            "lysithea",
+            "holo",
+            "fenrir",
+            "myuri",
+            "ryouko",
+            "nagatoro"};
     }
 
     public delegate List<ImageInfo> SourceQuery(List<string> qParams);
+    public delegate string CmdToParam(string cmdHandle);
 
-    class LobitaDownloader
+    public class LobitaDownloader
     {
         static void Main(string[] args)
         {
-            string workingDir = new FileInfo(Assembly.GetExecutingAssembly().Location).FullName;
-            string[] cmdHandles = new string[] {
-                "lysithea",
-                "holo",
-                "fenrir",
-                "myuri",
-                "ryouko",
-                "nagatoro"};
-
             // Change implementations here
             IDownloader downloader = 
-                new BooruDownloader(new FolderManager(workingDir), new XmlManager(workingDir));
-            SourceQuery query = ApiQuery;
+                new BooruDownloader(new FolderManager(), new XmlManager());
 
-            downloader.Download(cmdHandles, query);
-        }
-
-        private static List<ImageInfo> ApiQuery(List<string> parameters)
-        {
-            return null;
+            downloader.Download(Constants.CmdHandles);
         }
     }
 }
