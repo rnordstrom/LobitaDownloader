@@ -24,7 +24,7 @@ namespace LobitaDownloader
             base.Download(cmdHandles, ApiQuery, ConvertToTag);
         }
 
-        private static List<ImageInfo> ApiQuery(List<string> parameters)
+        private static List<ImageInfo> ApiQuery(string qParam)
         {
             return null;
         }

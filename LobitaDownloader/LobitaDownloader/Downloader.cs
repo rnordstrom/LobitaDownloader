@@ -14,18 +14,14 @@ namespace LobitaDownloader
             config = cm;
         }
 
-        protected void Download(string[] cmdHandles, SourceQuery apiQuery, CmdToParam ctp)
+        protected void Download(string[] cmdHandles, SourceQuery apiQuery, CmdToParam toParam)
         {
-            List<string> qParams = new List<string>();
-
             foreach (string handle in cmdHandles)
             {
                 if (config.CheckAutoMode(handle) == AutoMode.AUTO
                     && persistence.CheckLastUpdate(handle) < DateTime.Now)
                 {
-                    qParams.Add(ctp(handle));
-                    persistence.Persist(handle, apiQuery(qParams));
-                    qParams.Clear();
+                    persistence.Persist(handle, apiQuery(toParam(handle)));
                 }
             }
         }

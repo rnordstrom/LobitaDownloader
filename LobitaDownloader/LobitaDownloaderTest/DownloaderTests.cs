@@ -33,7 +33,7 @@ namespace LobitaDownloaderTest
         }
 
         // Mock API-call
-        private List<ImageInfo> TestQuery(List<string> qParams)
+        private List<ImageInfo> TestQuery(string qParam)
         {
             string fileExt = ".dat";
             byte[] bytes = new byte[5] { 1, 1, 1, 1, 1 };

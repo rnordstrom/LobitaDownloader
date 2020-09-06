@@ -28,7 +28,7 @@ namespace LobitaDownloader
             "nagatoro"};
     }
 
-    public delegate List<ImageInfo> SourceQuery(List<string> qParams);
+    public delegate List<ImageInfo> SourceQuery(string qParam);
     public delegate string CmdToParam(string cmdHandle);
 
     public class LobitaDownloader
