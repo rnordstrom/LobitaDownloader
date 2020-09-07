@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 
 namespace LobitaDownloader
 {
@@ -18,9 +17,10 @@ namespace LobitaDownloader
         {
             foreach (string handle in cmdHandles)
             {
-                if (config.CheckAutoMode(handle) == AutoMode.AUTO
-                    && persistence.CheckLastUpdate(handle) < DateTime.Now)
+                if (config.CheckAutoMode(handle) == AutoMode.AUTO)
                 {
+                    Console.WriteLine($"Downloading images for {handle}...");
+
                     persistence.Persist(handle, apiQuery(toParam(handle)));
                 }
             }

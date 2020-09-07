@@ -1,6 +1,7 @@
 ﻿using LobitaDownloader;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;
+using System.Drawing;
 
 namespace LobitaDownloaderTest
 {
@@ -35,10 +36,10 @@ namespace LobitaDownloaderTest
         // Mock API-call
         private List<ImageInfo> TestQuery(string qParam)
         {
-            string fileExt = ".dat";
-            byte[] bytes = new byte[5] { 1, 1, 1, 1, 1 };
-            ImageInfo info1 = new ImageInfo { FileExt = fileExt, Bytes = bytes };
-            ImageInfo info2 = new ImageInfo { FileExt = fileExt, Bytes = bytes };
+            string fileExt = ".png";
+            Bitmap image = new Bitmap(10, 10); 
+            ImageInfo info1 = new ImageInfo { FileExt = fileExt, Image = image };
+            ImageInfo info2 = new ImageInfo { FileExt = fileExt, Image = image };
 
             return new List<ImageInfo>() { info1, info2 };
         }

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 
 namespace LobitaDownloader
@@ -12,7 +13,7 @@ namespace LobitaDownloader
     public struct ImageInfo
     {
         public string FileExt { get; set; }
-        public byte[] Bytes { get; set; }
+        public Bitmap Image { get; set; }
     }
 
     public static class Constants
