@@ -26,7 +26,8 @@ namespace LobitaDownloader
             "fenrir",
             "myuri",
             "ryouko",
-            "nagatoro"};
+            "nagatoro",
+            "velvet"};
     }
 
     public delegate List<ImageInfo> SourceQuery(string qParam);

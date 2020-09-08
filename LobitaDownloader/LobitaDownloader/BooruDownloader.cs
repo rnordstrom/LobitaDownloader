@@ -18,7 +18,7 @@ namespace LobitaDownloader
         private const string booruUrl = "https://safebooru.org/";
         private const int hardLimit = 100;
         private const string baseParams = "index.php?page=dapi&s=post&q=index";
-        private const int softLimit = 20;
+        private const int imgsToFetch = 20;
 
         public BooruDownloader(IPersistenceManager pm, IConfigManager cm) : base(pm, cm)
         {
@@ -29,12 +29,13 @@ namespace LobitaDownloader
 
             tagsDict = new Dictionary<string, string>() 
             {
-                {Constants.CmdHandles[0], "lysithea_von_ordelia"},
-                {Constants.CmdHandles[1], "holo"},
-                {Constants.CmdHandles[2], "fenrir_(shingeki_no_bahamut)"},
-                {Constants.CmdHandles[3], "myuri_(spice_and_wolf)"},
-                {Constants.CmdHandles[4], "ookami_ryouko"},
-                {Constants.CmdHandles[5], "nagatoro"}
+                { Constants.CmdHandles[0], "lysithea_von_ordelia" },
+                { Constants.CmdHandles[1], "holo" },
+                { Constants.CmdHandles[2], "fenrir_(shingeki_no_bahamut)" },
+                { Constants.CmdHandles[3], "myuri_(spice_and_wolf)" },
+                { Constants.CmdHandles[4], "ookami_ryouko" },
+                { Constants.CmdHandles[5], "nagatoro" },
+                { Constants.CmdHandles[6], "velvet_crowe" }
             };
         }
 
@@ -54,39 +55,53 @@ namespace LobitaDownloader
             int pageNum = rand.Next(0, numPages);
 
             posts = GetPosts(baseParams + $"&tags={tags}&pid={pageNum}").Result;
+            XmlNodeList postList = posts.SelectNodes("post");
             string fileUrl;
             string fileExt;
+            List<XmlElement> selected = new List<XmlElement>();
             List<ImageInfo> infos = new List<ImageInfo>();
             WebClient webClient = new WebClient();
             Stream stream;
             Bitmap image;
 
-            int perPage = posts.ChildNodes.Count;
-            int actualLimit = perPage < hardLimit ? perPage : hardLimit;
-            int fetchOffset = rand.Next(0, (actualLimit - softLimit) - 1);
-            int fetchLimit = fetchOffset + softLimit;
-            int i = fetchOffset;
+            int actualLimit = count < hardLimit ? count : hardLimit;
+            int random;
+            List<int> chosenRands = new List<int>();
 
-            foreach (XmlElement post in posts.SelectNodes("post"))
+            if(count < imgsToFetch)
             {
-                if(i >= fetchOffset && i < fetchLimit)
+                foreach (XmlElement post in postList)
                 {
-                    fileUrl = post.GetAttribute("file_url");
-                    fileExt = "." + fileUrl.Split('.').Last();
-
-                    stream = webClient.OpenRead(fileUrl);
-                    image = new Bitmap(stream);
-
-                    infos.Add(new ImageInfo { FileExt = fileExt, Image = image });
-
-                    stream.Close();
+                    selected.Add(post);
                 }
-                else if(i >= fetchLimit)
+            }
+            else
+            {
+                for (int i = 0; i < imgsToFetch; i++)
                 {
-                    break;
-                }
+                    random = rand.Next(0, actualLimit - 1);
 
-                i++;
+                    while (chosenRands.Contains(random))
+                    {
+                        random = rand.Next(0, actualLimit - 1);
+                    }
+
+                    chosenRands.Add(random);
+                    selected.Add((XmlElement) postList[random]);
+                }
+            }
+
+            foreach (XmlElement post in selected)
+            {
+                fileUrl = post.GetAttribute("file_url");
+                fileExt = "." + fileUrl.Split('.').Last();
+
+                stream = webClient.OpenRead(fileUrl);
+                image = new Bitmap(stream);
+
+                infos.Add(new ImageInfo { FileExt = fileExt, Image = image });
+
+                stream.Close();
             }
 
             webClient.Dispose();
@@ -101,7 +116,7 @@ namespace LobitaDownloader
             XmlElement result = null;
             HttpResponseMessage response = await client.GetAsync(path);
 
-            if (response.IsSuccessStatusCode)
+            if(response.IsSuccessStatusCode)
             {
                 result = await response.Content.ReadAsAsync<XmlElement>();
             }
