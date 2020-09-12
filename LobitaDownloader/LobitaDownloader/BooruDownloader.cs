@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -98,6 +97,7 @@ namespace LobitaDownloader
             string fileExt;
             List<ImageInfo> infos = new List<ImageInfo>();
             WebClient webClient = new WebClient();
+            byte[] data;
             Stream stream;
             Bitmap image;
             bool tried = false;
@@ -119,17 +119,17 @@ namespace LobitaDownloader
                     fileUrl = tempElement.GetAttribute("file_url");
                     fileExt = "." + fileUrl.Split('.').Last();
 
-                    stream = webClient.OpenRead(fileUrl);
+                    data = webClient.DownloadData(fileUrl);
+                    stream = new MemoryStream(data);
                     image = new Bitmap(stream);
 
                     tried = true;
                 }
-                while (CalculateImgSize(image) > 8 * sizeOfMB);
+                while (data.Length > 8 * sizeOfMB);
 
                 infos.Add(new ImageInfo { FileExt = fileExt, Image = image });
 
                 tried = false;
-                stream.Close();
             }
 
             webClient.Dispose();
@@ -150,15 +150,6 @@ namespace LobitaDownloader
             }
 
             return result;
-        }
-
-        private static long CalculateImgSize(Bitmap bitmap)
-        {
-            int bitDepth = Image.GetPixelFormatSize(bitmap.PixelFormat);
-            int width = bitmap.Width;
-            int height = bitmap.Height;
-
-            return (((width * height) * bitDepth) / 8) / sizeOfMB;
         }
 
         private static int RandomIndex(ref List<int> chosenRands, int max)
