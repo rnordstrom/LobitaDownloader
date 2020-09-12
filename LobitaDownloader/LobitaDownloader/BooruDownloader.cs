@@ -120,12 +120,12 @@ namespace LobitaDownloader
                     fileExt = "." + fileUrl.Split('.').Last();
 
                     data = webClient.DownloadData(fileUrl);
-                    stream = new MemoryStream(data);
-                    image = new Bitmap(stream);
-
                     tried = true;
                 }
-                while (data.Length > 8 * sizeOfMB);
+                while (data.Length > 7 * sizeOfMB); // Implement a fairly wide margin
+
+                stream = new MemoryStream(data);
+                image = new Bitmap(stream);
 
                 infos.Add(new ImageInfo { FileExt = fileExt, Image = image });
 
