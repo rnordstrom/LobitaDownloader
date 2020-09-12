@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -19,6 +20,7 @@ namespace LobitaDownloader
         private const int hardLimit = 100;
         private const string baseParams = "index.php?page=dapi&s=post&q=index";
         private const int imgsToFetch = 20;
+        private const long sizeOfMB = 1024 * 1024;
 
         public BooruDownloader(IPersistenceManager pm, IConfigManager cm) : base(pm, cm)
         {
@@ -46,6 +48,8 @@ namespace LobitaDownloader
 
         private static List<ImageInfo> ApiQuery(string tags)
         {
+            // XML element results are fetched from the API
+
             XmlElement posts = GetPosts(baseParams + $"&tags={tags}").Result;
             XmlNodeList postList;
             List<XmlElement> allElements = new List<XmlElement>();
@@ -64,14 +68,9 @@ namespace LobitaDownloader
                 }
             }
 
-            string fileUrl;
-            string fileExt;
-            List<XmlElement> selected = new List<XmlElement>();
-            List<ImageInfo> infos = new List<ImageInfo>();
-            WebClient webClient = new WebClient();
-            Stream stream;
-            Bitmap image;
-
+            // Images are selected, based on the number of desired images
+            
+            List<XmlElement> selected = new List<XmlElement>(); 
             Random rand = new Random();
             int random;
             List<int> chosenRands = new List<int>();
@@ -87,28 +86,49 @@ namespace LobitaDownloader
             {
                 for (int i = 0; i < imgsToFetch; i++)
                 {
-                    random = rand.Next(0, count - 1);
+                    random = RandomIndex(ref chosenRands, count);
 
-                    while (chosenRands.Contains(random))
-                    {
-                        random = rand.Next(0, count - 1);
-                    }
-
-                    chosenRands.Add(random);
                     selected.Add(allElements[random]);
                 }
             }
 
-            foreach (XmlElement post in selected)
-            {
-                fileUrl = post.GetAttribute("file_url");
-                fileExt = "." + fileUrl.Split('.').Last();
+            // Images are downloaded. Images must be smaller than 8MB.
 
-                stream = webClient.OpenRead(fileUrl);
-                image = new Bitmap(stream);
+            string fileUrl;
+            string fileExt;
+            List<ImageInfo> infos = new List<ImageInfo>();
+            WebClient webClient = new WebClient();
+            Stream stream;
+            Bitmap image;
+            bool tried = false;
+            XmlElement tempElement;
+
+            foreach (XmlElement element in selected)
+            {
+                do
+                {
+                    tempElement = element;
+
+                    if(tried == true)
+                    {
+                        random = RandomIndex(ref chosenRands, count);
+
+                        tempElement = allElements[random];
+                    }
+
+                    fileUrl = tempElement.GetAttribute("file_url");
+                    fileExt = "." + fileUrl.Split('.').Last();
+
+                    stream = webClient.OpenRead(fileUrl);
+                    image = new Bitmap(stream);
+
+                    tried = true;
+                }
+                while (CalculateImgSize(image) > 8 * sizeOfMB);
 
                 infos.Add(new ImageInfo { FileExt = fileExt, Image = image });
 
+                tried = false;
                 stream.Close();
             }
 
@@ -130,6 +150,30 @@ namespace LobitaDownloader
             }
 
             return result;
+        }
+
+        private static long CalculateImgSize(Bitmap bitmap)
+        {
+            int bitDepth = Image.GetPixelFormatSize(bitmap.PixelFormat);
+            int width = bitmap.Width;
+            int height = bitmap.Height;
+
+            return (((width * height) * bitDepth) / 8) / sizeOfMB;
+        }
+
+        private static int RandomIndex(ref List<int> chosenRands, int max)
+        {
+            Random rand = new Random();
+            int random = rand.Next(0, max - 1);
+
+            while (chosenRands.Contains(random))
+            {
+                random = rand.Next(0, max - 1);
+            }
+
+            chosenRands.Add(random);
+
+            return random;
         }
     }
 }
