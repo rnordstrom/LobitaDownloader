@@ -47,15 +47,23 @@ namespace LobitaDownloader
         private static List<ImageInfo> ApiQuery(string tags)
         {
             XmlElement posts = GetPosts(baseParams + $"&tags={tags}").Result;
+            XmlNodeList postList;
+            List<XmlElement> allElements = new List<XmlElement>();
 
             int count = int.Parse(posts.GetAttribute("count"));
             int numPages = count / hardLimit;
 
-            Random rand = new Random();
-            int pageNum = rand.Next(0, numPages);
+            for (int pageNum = 0; pageNum <= numPages; pageNum++)
+            {
+                posts = GetPosts(baseParams + $"&tags={tags}&pid={pageNum}").Result;
+                postList = posts.SelectNodes("post");
 
-            posts = GetPosts(baseParams + $"&tags={tags}&pid={pageNum}").Result;
-            XmlNodeList postList = posts.SelectNodes("post");
+                foreach (XmlElement post in postList)
+                {
+                    allElements.Add(post);
+                }
+            }
+
             string fileUrl;
             string fileExt;
             List<XmlElement> selected = new List<XmlElement>();
@@ -64,30 +72,30 @@ namespace LobitaDownloader
             Stream stream;
             Bitmap image;
 
-            int actualLimit = count < hardLimit ? count : hardLimit;
+            Random rand = new Random();
             int random;
             List<int> chosenRands = new List<int>();
 
             if(count < imgsToFetch)
             {
-                foreach (XmlElement post in postList)
+                foreach (XmlElement element in allElements)
                 {
-                    selected.Add(post);
+                    selected.Add(element);
                 }
             }
             else
             {
                 for (int i = 0; i < imgsToFetch; i++)
                 {
-                    random = rand.Next(0, actualLimit - 1);
+                    random = rand.Next(0, count - 1);
 
                     while (chosenRands.Contains(random))
                     {
-                        random = rand.Next(0, actualLimit - 1);
+                        random = rand.Next(0, count - 1);
                     }
 
                     chosenRands.Add(random);
-                    selected.Add((XmlElement) postList[random]);
+                    selected.Add(allElements[random]);
                 }
             }
 
