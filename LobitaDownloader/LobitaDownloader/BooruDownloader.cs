@@ -18,8 +18,9 @@ namespace LobitaDownloader
         private const string booruUrl = "https://safebooru.org/";
         private const int hardLimit = 100;
         private const string baseParams = "index.php?page=dapi&s=post&q=index";
-        private const int imgsToFetch = 20;
-        private const long sizeOfMB = 1024 * 1024;
+        private const int ImgsToFetch = 20;
+        private const long SizeOfMB = 1024 * 1024;
+        private const long MaxImgSize = 7 * SizeOfMB;
 
         public BooruDownloader(IPersistenceManager pm, IConfigManager cm) : base(pm, cm)
         {
@@ -69,12 +70,11 @@ namespace LobitaDownloader
 
             // Images are selected, based on the number of desired images
             
-            List<XmlElement> selected = new List<XmlElement>(); 
-            Random rand = new Random();
+            List<XmlElement> selected = new List<XmlElement>();
             int random;
             List<int> chosenRands = new List<int>();
 
-            if(count < imgsToFetch)
+            if(count < ImgsToFetch)
             {
                 foreach (XmlElement element in allElements)
                 {
@@ -83,7 +83,7 @@ namespace LobitaDownloader
             }
             else
             {
-                for (int i = 0; i < imgsToFetch; i++)
+                for (int i = 0; i < ImgsToFetch; i++)
                 {
                     random = RandomIndex(ref chosenRands, count);
 
@@ -96,43 +96,51 @@ namespace LobitaDownloader
             string fileUrl;
             string fileExt;
             List<ImageInfo> infos = new List<ImageInfo>();
-            WebClient webClient = new WebClient();
             byte[] data;
             Stream stream;
             Bitmap image;
             bool tried = false;
             XmlElement tempElement;
+            int dataSize = 0;
 
-            foreach (XmlElement element in selected)
+            using (WebClient webClient = new WebClient())
             {
-                do
+                foreach (XmlElement element in selected)
                 {
-                    tempElement = element;
-
-                    if(tried == true)
+                    do
                     {
-                        random = RandomIndex(ref chosenRands, count);
+                        tempElement = element;
 
-                        tempElement = allElements[random];
+                        if (tried == true)
+                        {
+                            Logger.Log($"Image of size greater than {MaxImgSize} encountered for tags {tags}. Actual image size = {dataSize}.");
+
+                            random = RandomIndex(ref chosenRands, count);
+                            tempElement = allElements[random];
+                        }
+
+                        fileUrl = tempElement.GetAttribute("file_url");
+                        fileExt = "." + fileUrl.Split('.').Last();
+
+                        data = webClient.DownloadData(fileUrl);
+                        dataSize = data.Length;
+                        tried = true;
                     }
+                    while (dataSize > MaxImgSize); // Implement a fairly wide margin
 
-                    fileUrl = tempElement.GetAttribute("file_url");
-                    fileExt = "." + fileUrl.Split('.').Last();
+                    stream = new MemoryStream(data);
+                    image = new Bitmap(stream);
 
-                    data = webClient.DownloadData(fileUrl);
-                    tried = true;
+                    infos.Add(new ImageInfo { FileExt = fileExt, Image = image });
+
+                    tried = false;
                 }
-                while (data.Length > 7 * sizeOfMB); // Implement a fairly wide margin
-
-                stream = new MemoryStream(data);
-                image = new Bitmap(stream);
-
-                infos.Add(new ImageInfo { FileExt = fileExt, Image = image });
-
-                tried = false;
             }
 
-            webClient.Dispose();
+            if (count > ImgsToFetch && selected.Count < ImgsToFetch)
+            {
+                Logger.Log($"{selected.Count} out of {ImgsToFetch} images downloaded for tags {tags}. Total number of images = {count}.");
+            }
 
             return infos;
         }
