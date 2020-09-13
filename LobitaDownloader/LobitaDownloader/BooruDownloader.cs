@@ -15,15 +15,15 @@ namespace LobitaDownloader
     {
         private Dictionary<string, string> tagsDict;
         private static HttpClient client = new HttpClient();
-        private const string booruUrl = "https://safebooru.org/";
-        private const int hardLimit = 100;
-        private const string baseParams = "index.php?page=dapi&s=post&q=index";
-        private const int imgsToFetch = 20;
-        private const long sizeOfMB = 1024 * 1024;
+        private const string BooruUrl = "https://safebooru.org/";
+        private const int HardLimit = 100;
+        private const string BaseParams = "index.php?page=dapi&s=post&q=index";
+        private const int ImgsToFetch = 20;
+        private const long SizeOfMB = 1024 * 1024;
 
         public BooruDownloader(IPersistenceManager pm, IConfigManager cm) : base(pm, cm)
         {
-            client.BaseAddress = new Uri(booruUrl);
+            client.BaseAddress = new Uri(BooruUrl);
             client.DefaultRequestHeaders.Accept.Clear();
             client.DefaultRequestHeaders.Accept.Add(
                 new MediaTypeWithQualityHeaderValue("application/xml"));
@@ -49,16 +49,16 @@ namespace LobitaDownloader
         {
             // XML element results are fetched from the API
 
-            XmlElement posts = GetPosts(baseParams + $"&tags={tags}").Result;
+            XmlElement posts = GetPosts(BaseParams + $"&tags={tags}").Result;
             XmlNodeList postList;
             List<XmlElement> allElements = new List<XmlElement>();
 
             int count = int.Parse(posts.GetAttribute("count"));
-            int numPages = count / hardLimit;
+            int numPages = count / HardLimit;
 
             for (int pageNum = 0; pageNum <= numPages; pageNum++)
             {
-                posts = GetPosts(baseParams + $"&tags={tags}&pid={pageNum}").Result;
+                posts = GetPosts(BaseParams + $"&tags={tags}&pid={pageNum}").Result;
                 postList = posts.SelectNodes("post");
 
                 foreach (XmlElement post in postList)
@@ -74,7 +74,7 @@ namespace LobitaDownloader
             int random;
             List<int> chosenRands = new List<int>();
 
-            if(count < imgsToFetch)
+            if(count < ImgsToFetch)
             {
                 foreach (XmlElement element in allElements)
                 {
@@ -83,7 +83,7 @@ namespace LobitaDownloader
             }
             else
             {
-                for (int i = 0; i < imgsToFetch; i++)
+                for (int i = 0; i < ImgsToFetch; i++)
                 {
                     random = RandomIndex(ref chosenRands, count);
 
@@ -96,43 +96,43 @@ namespace LobitaDownloader
             string fileUrl;
             string fileExt;
             List<ImageInfo> infos = new List<ImageInfo>();
-            WebClient webClient = new WebClient();
             byte[] data;
             Stream stream;
             Bitmap image;
             bool tried = false;
             XmlElement tempElement;
 
-            foreach (XmlElement element in selected)
+            using (WebClient webClient = new WebClient())
             {
-                do
+                foreach (XmlElement element in selected)
                 {
-                    tempElement = element;
-
-                    if(tried == true)
+                    do
                     {
-                        random = RandomIndex(ref chosenRands, count);
+                        tempElement = element;
 
-                        tempElement = allElements[random];
+                        if (tried == true)
+                        {
+                            random = RandomIndex(ref chosenRands, count);
+
+                            tempElement = allElements[random];
+                        }
+
+                        fileUrl = tempElement.GetAttribute("file_url");
+                        fileExt = "." + fileUrl.Split('.').Last();
+
+                        data = webClient.DownloadData(fileUrl);
+                        tried = true;
                     }
+                    while (data.Length > 7 * SizeOfMB); // Implement a fairly wide margin
 
-                    fileUrl = tempElement.GetAttribute("file_url");
-                    fileExt = "." + fileUrl.Split('.').Last();
+                    stream = new MemoryStream(data);
+                    image = new Bitmap(stream);
 
-                    data = webClient.DownloadData(fileUrl);
-                    tried = true;
+                    infos.Add(new ImageInfo { FileExt = fileExt, Image = image });
+
+                    tried = false;
                 }
-                while (data.Length > 7 * sizeOfMB); // Implement a fairly wide margin
-
-                stream = new MemoryStream(data);
-                image = new Bitmap(stream);
-
-                infos.Add(new ImageInfo { FileExt = fileExt, Image = image });
-
-                tried = false;
             }
-
-            webClient.Dispose();
 
             return infos;
         }
