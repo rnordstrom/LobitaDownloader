@@ -15,15 +15,16 @@ namespace LobitaDownloader
     {
         private Dictionary<string, string> tagsDict;
         private static HttpClient client = new HttpClient();
-        private const string BooruUrl = "https://safebooru.org/";
-        private const int HardLimit = 100;
-        private const string BaseParams = "index.php?page=dapi&s=post&q=index";
+        private const string booruUrl = "https://safebooru.org/";
+        private const int hardLimit = 100;
+        private const string baseParams = "index.php?page=dapi&s=post&q=index";
         private const int ImgsToFetch = 20;
         private const long SizeOfMB = 1024 * 1024;
+        private const long MaxImgSize = 7 * SizeOfMB;
 
         public BooruDownloader(IPersistenceManager pm, IConfigManager cm) : base(pm, cm)
         {
-            client.BaseAddress = new Uri(BooruUrl);
+            client.BaseAddress = new Uri(booruUrl);
             client.DefaultRequestHeaders.Accept.Clear();
             client.DefaultRequestHeaders.Accept.Add(
                 new MediaTypeWithQualityHeaderValue("application/xml"));
@@ -49,16 +50,16 @@ namespace LobitaDownloader
         {
             // XML element results are fetched from the API
 
-            XmlElement posts = GetPosts(BaseParams + $"&tags={tags}").Result;
+            XmlElement posts = GetPosts(baseParams + $"&tags={tags}").Result;
             XmlNodeList postList;
             List<XmlElement> allElements = new List<XmlElement>();
 
             int count = int.Parse(posts.GetAttribute("count"));
-            int numPages = count / HardLimit;
+            int numPages = count / hardLimit;
 
             for (int pageNum = 0; pageNum <= numPages; pageNum++)
             {
-                posts = GetPosts(BaseParams + $"&tags={tags}&pid={pageNum}").Result;
+                posts = GetPosts(baseParams + $"&tags={tags}&pid={pageNum}").Result;
                 postList = posts.SelectNodes("post");
 
                 foreach (XmlElement post in postList)
@@ -69,8 +70,7 @@ namespace LobitaDownloader
 
             // Images are selected, based on the number of desired images
             
-            List<XmlElement> selected = new List<XmlElement>(); 
-            Random rand = new Random();
+            List<XmlElement> selected = new List<XmlElement>();
             int random;
             List<int> chosenRands = new List<int>();
 
@@ -101,6 +101,7 @@ namespace LobitaDownloader
             Bitmap image;
             bool tried = false;
             XmlElement tempElement;
+            int dataSize = 0;
 
             using (WebClient webClient = new WebClient())
             {
@@ -112,8 +113,9 @@ namespace LobitaDownloader
 
                         if (tried == true)
                         {
-                            random = RandomIndex(ref chosenRands, count);
+                            Logger.Log($"Image of size greater than {MaxImgSize} encountered for tags {tags}. Actual image size = {dataSize}.");
 
+                            random = RandomIndex(ref chosenRands, count);
                             tempElement = allElements[random];
                         }
 
@@ -121,9 +123,10 @@ namespace LobitaDownloader
                         fileExt = "." + fileUrl.Split('.').Last();
 
                         data = webClient.DownloadData(fileUrl);
+                        dataSize = data.Length;
                         tried = true;
                     }
-                    while (data.Length > 7 * SizeOfMB); // Implement a fairly wide margin
+                    while (dataSize > MaxImgSize); // Implement a fairly wide margin
 
                     stream = new MemoryStream(data);
                     image = new Bitmap(stream);
@@ -132,6 +135,11 @@ namespace LobitaDownloader
 
                     tried = false;
                 }
+            }
+
+            if (count > ImgsToFetch && selected.Count < ImgsToFetch)
+            {
+                Logger.Log($"{selected.Count} out of {ImgsToFetch} images downloaded for tags {tags}. Total number of images = {count}.");
             }
 
             return infos;

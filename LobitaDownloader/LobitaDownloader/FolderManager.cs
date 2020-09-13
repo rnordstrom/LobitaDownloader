@@ -18,31 +18,38 @@ namespace LobitaDownloader
 
         public void Persist(string cmdHandle, List<ImageInfo> imageInfos)
         {
-            Console.WriteLine($"Storing images for {cmdHandle}...");
-
-            DirectoryInfo di = Directory.CreateDirectory(Path.Join(DataDirectory.FullName, cmdHandle));
-            int counter = 1;
-            string fileName;
-            ImageFormat imgFormat;
-
-            // Delete all existing files before new writes
-            CleanUp(di);
-            
-            // Names all files for a given command 1 - n, where n equals the number of files
-            foreach (var info in imageInfos)
+            try
             {
-                fileName = Path.Join(di.FullName, (counter++).ToString() + info.FileExt);
+                Console.WriteLine($"Storing images for {cmdHandle}...");
 
-                if(info.FileExt == ".jpg")
-                {
-                    imgFormat = ImageFormat.Jpeg;
-                }
-                else if(info.FileExt == ".png")
-                {
-                    imgFormat = ImageFormat.Png;
-                }
+                DirectoryInfo di = Directory.CreateDirectory(Path.Join(DataDirectory.FullName, cmdHandle));
+                int counter = 1;
+                string fileName;
+                ImageFormat imgFormat;
 
-                info.Image.Save(fileName);
+                // Delete all existing files before new writes
+                CleanUp(di);
+
+                // Names all files for a given command 1 - n, where n equals the number of files
+                foreach (var info in imageInfos)
+                {
+                    fileName = Path.Join(di.FullName, (counter++).ToString() + info.FileExt);
+
+                    if (info.FileExt == ".jpg")
+                    {
+                        imgFormat = ImageFormat.Jpeg;
+                    }
+                    else if (info.FileExt == ".png")
+                    {
+                        imgFormat = ImageFormat.Png;
+                    }
+
+                    info.Image.Save(fileName);
+                }
+            }
+            catch(Exception e)
+            {
+                Logger.Log(e.Message);
             }
         }
 

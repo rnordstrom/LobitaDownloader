@@ -31,18 +31,11 @@ namespace LobitaDownloader
         {
             string filePath = Path.Join(LogDirectory.FullName, DateTime.Today.Date.ToShortDateString() + FileExt);
             FileInfo logFile = new FileInfo(filePath);
-            FileStream logFS;
+            StreamWriter logStream;
+            
+            logStream = logFile.AppendText();
 
-            if(!File.Exists(filePath))
-            {
-                logFS = logFile.Create();
-            }
-            else
-            {
-                logFS = logFile.OpenWrite();
-            }
-
-            return new StreamWriter(logFS);
+            return logStream;
         }
 
         // Removes the oldest log files if the total number of files is greater than intended

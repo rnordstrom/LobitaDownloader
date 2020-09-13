@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 
@@ -41,7 +42,19 @@ namespace LobitaDownloader
             IDownloader downloader = 
                 new BooruDownloader(new FolderManager(), new XmlManager());
 
-            downloader.Download(Constants.CmdHandles);
+            try
+            {
+                // Make sure that the number of log files does not exceed the limit
+                Logger.CleanDirectory();
+
+                downloader.Download(Constants.CmdHandles);
+            }
+            catch(Exception e)
+            {
+                Logger.Log(e.Message);
+            }
+
+            Logger.Log("Program terminated successfully.");
         }
     }
 }
