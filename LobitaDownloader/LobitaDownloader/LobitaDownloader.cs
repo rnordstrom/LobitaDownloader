@@ -51,7 +51,7 @@ namespace LobitaDownloader
             }
             catch(Exception e)
             {
-                Logger.Log(e.Message);
+                Logger.Log(e);
             }
 
             Logger.Log("Program terminated successfully.");

@@ -26,6 +26,11 @@ namespace LobitaDownloader
             }
         }
 
+        public static void Log(Exception e)
+        {
+            Log(e.Message + Environment.NewLine + e.StackTrace);
+        }
+
         // Creates a log file named after today's date (sans time!) or returns it if it exists
         private static StreamWriter GetLogFileStream()
         {
