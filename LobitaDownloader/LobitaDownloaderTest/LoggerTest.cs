@@ -15,7 +15,14 @@ namespace LobitaDownloaderTest
             DeleteFiles(Logger.LogDirectory.GetFiles());
             Assert.IsTrue(Logger.LogDirectory.GetFiles().Length == 0);
 
-            Logger.Log("This is LobitaDownloader!");
+            try
+            {
+                throw new InvalidOperationException("You wouldn't download a lobita...");
+            }
+            catch(Exception e)
+            {
+                Logger.Log(e);
+            }
 
             int extLength = Logger.FileExt.Length;
 
@@ -27,8 +34,6 @@ namespace LobitaDownloaderTest
             {
                 Console.WriteLine(reader.ReadToEnd());
             }
-
-            DeleteFiles(files);
         }
 
         [TestMethod]
@@ -67,8 +72,6 @@ namespace LobitaDownloaderTest
                     x => DateTime.Parse(x.Name.Substring(0, x.Name.Length - extLength))
                         .CompareTo(dt.AddDays(i)) == 0));
             }
-
-            DeleteFiles(filesAfter);
         }
 
         private void DeleteFiles(FileInfo[] files)
