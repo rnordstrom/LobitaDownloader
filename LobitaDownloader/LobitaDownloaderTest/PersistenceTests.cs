@@ -9,25 +9,25 @@ namespace LobitaDownloaderTest
     [TestClass]
     public class PersistenceTests
     {
-        private FolderManager fm = new FolderManager();
+        private FolderImageManager fm = new FolderImageManager();
 
         [TestMethod]
         public void TestPersist()
         {
             string fileExt = ".png";
             Bitmap image = new Bitmap(10, 10);
-            ImageInfo info = new ImageInfo { FileExt = fileExt, Image = image };
-            List<ImageInfo> infos = new List<ImageInfo>() { info };
+            ImageData info = new ImageData(fileExt, image);
+            List<FileData> infos = new List<FileData>() { info };
             FileInfo[] files;
             int count = 1;
 
-            foreach (string handle in Constants.CmdHandles)
+            foreach (string handle in Constants.ImageCmdHandles)
             {
                 fm.Persist(handle, infos);
             }
 
             DirectoryInfo[] directories = fm.DataDirectory.GetDirectories();
-            Assert.AreEqual(Constants.CmdHandles.Length, directories.Length);
+            Assert.AreEqual(Constants.ImageCmdHandles.Length, directories.Length);
 
             Assert.IsTrue(Directory.Exists(fm.DataDirectory.FullName));
             Directory.SetCurrentDirectory(fm.DataDirectory.FullName);

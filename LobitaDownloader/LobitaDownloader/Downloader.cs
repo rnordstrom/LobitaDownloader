@@ -13,7 +13,7 @@ namespace LobitaDownloader
             config = cm;
         }
 
-        protected void Download(string[] cmdHandles, SourceQuery apiQuery, CmdToParam toParam)
+        protected void Download(string[] cmdHandles, SourceQuery query, CmdToParam toParam)
         {
             foreach (string handle in cmdHandles)
             {
@@ -21,7 +21,7 @@ namespace LobitaDownloader
                 {
                     Console.WriteLine($"Downloading images for {handle}...");
 
-                    persistence.Persist(handle, apiQuery(toParam(handle)));
+                    persistence.Persist(handle, query(toParam(handle)));
                 }
             }
         }

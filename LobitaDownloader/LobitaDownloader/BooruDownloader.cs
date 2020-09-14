@@ -15,29 +15,29 @@ namespace LobitaDownloader
     {
         private Dictionary<string, string> tagsDict;
         private static HttpClient client = new HttpClient();
-        private const string booruUrl = "https://safebooru.org/";
-        private const int hardLimit = 100;
-        private const string baseParams = "index.php?page=dapi&s=post&q=index";
+        private const string BooruUrl = "https://safebooru.org/";
+        private const int HardLimit = 100;
+        private const string BaseParams = "index.php?page=dapi&s=post&q=index";
         private const int ImgsToFetch = 20;
         private const long SizeOfMB = 1024 * 1024;
         private const long MaxImgSize = 7 * SizeOfMB;
 
         public BooruDownloader(IPersistenceManager pm, IConfigManager cm) : base(pm, cm)
         {
-            client.BaseAddress = new Uri(booruUrl);
+            client.BaseAddress = new Uri(BooruUrl);
             client.DefaultRequestHeaders.Accept.Clear();
             client.DefaultRequestHeaders.Accept.Add(
                 new MediaTypeWithQualityHeaderValue("application/xml"));
 
             tagsDict = new Dictionary<string, string>() 
             {
-                { Constants.CmdHandles[0], "lysithea_von_ordelia" },
-                { Constants.CmdHandles[1], "holo" },
-                { Constants.CmdHandles[2], "fenrir_(shingeki_no_bahamut)" },
-                { Constants.CmdHandles[3], "myuri_(spice_and_wolf)" },
-                { Constants.CmdHandles[4], "ookami_ryouko" },
-                { Constants.CmdHandles[5], "nagatoro" },
-                { Constants.CmdHandles[6], "velvet_crowe" }
+                { Constants.ImageCmdHandles[0], "lysithea_von_ordelia" },
+                { Constants.ImageCmdHandles[1], "holo" },
+                { Constants.ImageCmdHandles[2], "fenrir_(shingeki_no_bahamut)" },
+                { Constants.ImageCmdHandles[3], "myuri_(spice_and_wolf)" },
+                { Constants.ImageCmdHandles[4], "ookami_ryouko" },
+                { Constants.ImageCmdHandles[5], "nagatoro" },
+                { Constants.ImageCmdHandles[6], "velvet_crowe" }
             };
         }
 
@@ -46,20 +46,20 @@ namespace LobitaDownloader
             base.Download(cmdHandles, ApiQuery, ConvertToTag);
         }
 
-        private static List<ImageInfo> ApiQuery(string tags)
+        private static List<FileData> ApiQuery(string tags)
         {
             // XML element results are fetched from the API
 
-            XmlElement posts = GetPosts(baseParams + $"&tags={tags}").Result;
+            XmlElement posts = GetPosts(BaseParams + $"&tags={tags}").Result;
             XmlNodeList postList;
             List<XmlElement> allElements = new List<XmlElement>();
 
             int count = int.Parse(posts.GetAttribute("count"));
-            int numPages = count / hardLimit;
+            int numPages = count / HardLimit;
 
             for (int pageNum = 0; pageNum <= numPages; pageNum++)
             {
-                posts = GetPosts(baseParams + $"&tags={tags}&pid={pageNum}").Result;
+                posts = GetPosts(BaseParams + $"&tags={tags}&pid={pageNum}").Result;
                 postList = posts.SelectNodes("post");
 
                 foreach (XmlElement post in postList)
@@ -95,7 +95,7 @@ namespace LobitaDownloader
 
             string fileUrl;
             string fileExt;
-            List<ImageInfo> infos = new List<ImageInfo>();
+            List<FileData> fileData = new List<FileData>();
             byte[] data;
             Stream stream;
             Bitmap image;
@@ -131,7 +131,7 @@ namespace LobitaDownloader
                     stream = new MemoryStream(data);
                     image = new Bitmap(stream);
 
-                    infos.Add(new ImageInfo { FileExt = fileExt, Image = image });
+                    fileData.Add(new ImageData(fileExt, image));
 
                     tried = false;
                 }
@@ -142,7 +142,7 @@ namespace LobitaDownloader
                 Logger.Log($"{selected.Count} out of {ImgsToFetch} images downloaded for tags {tags}. Total number of images = {count}.");
             }
 
-            return infos;
+            return fileData;
         }
 
         private string ConvertToTag(string cmdHandle) => tagsDict[cmdHandle];

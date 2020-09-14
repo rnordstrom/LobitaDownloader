@@ -11,11 +11,11 @@ namespace LobitaDownloaderTest
         [TestMethod]
         public void TestDownload()
         {
-            IPersistenceManager pm = new FolderManager();
+            IPersistenceManager pm = new FolderImageManager();
             IConfigManager cm = new XmlManager();
             TestDownloader testDL = new TestDownloader(pm, cm);
 
-            testDL.Download(Constants.CmdHandles);
+            testDL.Download(Constants.ImageCmdHandles);
         }
     }
 
@@ -34,14 +34,14 @@ namespace LobitaDownloaderTest
         }
 
         // Mock API-call
-        private List<ImageInfo> TestQuery(string qParam)
+        private List<FileData> TestQuery(string qParam)
         {
             string fileExt = ".png";
             Bitmap image = new Bitmap(10, 10); 
-            ImageInfo info1 = new ImageInfo { FileExt = fileExt, Image = image };
-            ImageInfo info2 = new ImageInfo { FileExt = fileExt, Image = image };
+            ImageData info1 = new ImageData(fileExt, image);
+            ImageData info2 = new ImageData(fileExt, image);
 
-            return new List<ImageInfo>() { info1, info2 };
+            return new List<FileData>() { info1, info2 };
         }
     }
 }
