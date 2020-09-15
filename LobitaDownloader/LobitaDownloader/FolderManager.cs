@@ -11,7 +11,16 @@ namespace LobitaDownloader
             DataDirectory = Directory.CreateDirectory(Path.Join(Constants.WorkingDirectory, dirName));
         }
 
-        protected void CleanUp(DirectoryInfo d)
+        protected DirectoryInfo InitDirectory(string cmdHandle)
+        {
+            DirectoryInfo di = Directory.CreateDirectory(Path.Join(DataDirectory.FullName, cmdHandle));
+
+            CleanUp(di);
+
+            return di;
+        }
+        
+        private void CleanUp(DirectoryInfo d)
         {
             foreach (FileInfo f in d.GetFiles())
             {

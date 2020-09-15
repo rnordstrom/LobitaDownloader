@@ -19,7 +19,7 @@ namespace LobitaDownloader
             {
                 if (config.CheckAutoMode(handle) == AutoMode.AUTO)
                 {
-                    Console.WriteLine($"Downloading images for {handle}...");
+                    Console.WriteLine($"Downloading data for {handle}...");
 
                     persistence.Persist(handle, query(toParam(handle)));
                 }

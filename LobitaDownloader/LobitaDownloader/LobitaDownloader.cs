@@ -13,23 +13,33 @@ namespace LobitaDownloader
 
     public abstract class FileData
     {
-        protected string fileExt;
+        public string FileExt { get; }
 
         public FileData(string ext)
         {
-            fileExt = ext;
+            FileExt = ext;
         }
     }
 
     public class ImageData : FileData
     {
-        public string FileExt { get; set; }
-        public Bitmap Image { get; set; }
+        public Bitmap Image { get; }
 
         public ImageData(string ext, Bitmap img) : base(ext)
         {
-            FileExt = ext;
             Image = img;
+        }
+    }
+
+    public class VideoData : FileData
+    {
+        public string FileName { get; }
+        public byte[] Video { get; }
+
+        public VideoData(string ext, string fn, byte[] v) : base(ext)
+        {
+            FileName = fn;
+            Video = v;
         }
     }
 
@@ -61,15 +71,18 @@ namespace LobitaDownloader
         static void Main(string[] args)
         {
             // Change implementations here
-            IDownloader downloader = 
+            IDownloader imageDownloader = 
                 new BooruDownloader(new FolderImageManager(), new XmlManager());
+            IDownloader videoDownloader =
+                new VideoThemeDownloader(new FolderVideoManager(), new XmlManager());
 
             try
             {
                 // Make sure that the number of log files does not exceed the limit
                 Logger.CleanDirectory();
 
-                downloader.Download(Constants.ImageCmdHandles);
+                //imageDownloader.Download(Constants.ImageCmdHandles);
+                videoDownloader.Download(Constants.VideoCmdHandles);
             }
             catch(Exception e)
             {

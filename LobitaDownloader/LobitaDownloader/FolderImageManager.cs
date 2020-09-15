@@ -15,13 +15,10 @@ namespace LobitaDownloader
         {
             Console.WriteLine($"Storing images for {cmdHandle}...");
 
-            DirectoryInfo di = Directory.CreateDirectory(Path.Join(DataDirectory.FullName, cmdHandle));
+            DirectoryInfo di = InitDirectory(cmdHandle);
             int counter = 1;
             string fileName;
             ImageFormat imgFormat;
-
-            // Delete all existing files before new writes
-            CleanUp(di);
 
             // Names all files for a given command 1 - n, where n equals the number of files
             foreach (ImageData image in imageData)
