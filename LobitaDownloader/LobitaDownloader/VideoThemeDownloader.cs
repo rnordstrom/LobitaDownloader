@@ -1,6 +1,7 @@
 ﻿using HtmlAgilityPack;
 using System.Collections.Generic;
 using System.Net;
+using System.Threading;
 
 namespace LobitaDownloader
 {
@@ -9,6 +10,7 @@ namespace LobitaDownloader
         private const string MoeUrl = "https://openings.moe/";
         private const string FileExt = "mp4";
         private const int VideosToFetch = 5;
+        private const int WaitInterval = 5000;
 
         public VideoThemeDownloader(IPersistenceManager pm, IConfigManager cm) : base(pm, cm) { }
 
@@ -32,6 +34,7 @@ namespace LobitaDownloader
                     .SelectSingleNode($"//source[@type = 'video/{FileExt}']");
 
                 nodeList.Add(videoNode);
+                Thread.Sleep(WaitInterval);
             }
 
             string videoSrc;

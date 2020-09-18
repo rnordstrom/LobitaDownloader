@@ -25,13 +25,21 @@ namespace LobitaDownloader
             {
                 fileName = Path.Join(di.FullName, (counter++).ToString() + image.FileExt);
 
-                if (image.FileExt == ".jpg")
+                if(image.FileExt == ".jpg")
                 {
                     imgFormat = ImageFormat.Jpeg;
                 }
-                else if (image.FileExt == ".png")
+                else if(image.FileExt == ".png")
                 {
                     imgFormat = ImageFormat.Png;
+                }
+                else if(image.FileExt == ".gif")
+                {
+                    imgFormat = ImageFormat.Gif;
+                }
+                else
+                {
+                    continue; // Any other format may cause a GDI+ error(?)
                 }
 
                 image.Image.Save(fileName); 
