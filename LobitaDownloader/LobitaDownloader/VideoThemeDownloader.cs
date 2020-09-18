@@ -39,6 +39,7 @@ namespace LobitaDownloader
 
             string videoSrc;
             string fileName;
+            string extractedName;
             string fileExt = "." + FileExt;
             byte[] data;
             List<FileData> videoData = new List<FileData>();
@@ -48,7 +49,8 @@ namespace LobitaDownloader
                 foreach (HtmlNode node in nodeList)
                 {
                     videoSrc = node.GetAttributeValue("src", null);
-                    fileName = videoSrc.Split("/")[1].Split(".")[0];
+                    extractedName = videoSrc.Split("/")[1].Split(".")[0];
+                    fileName = RemoveSpecialChars(extractedName);
                     data = webClient.DownloadData(MoeUrl + videoSrc);
 
                     videoData.Add(new VideoData(fileExt, fileName, data));
@@ -59,5 +61,17 @@ namespace LobitaDownloader
         }
 
         private string ToParam(string handle) => handle;
+
+        private string RemoveSpecialChars(string s)
+        {
+            string toRemove = "%";
+
+            while (s.Contains(toRemove))
+            {
+                s = s.Remove(s.IndexOf(toRemove), 3);
+            }
+
+            return s;
+        }
     }
 }
