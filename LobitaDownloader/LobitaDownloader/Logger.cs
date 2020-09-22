@@ -3,36 +3,38 @@ using System.IO;
 
 namespace LobitaDownloader
 {
-    public static class Logger
+    public class Logger
     {
-        const int BackLogDays = 30;
+        private static readonly int BackLogDays = 30;
 
-        public static DirectoryInfo LogDirectory { get; } 
-            = new DirectoryInfo(Path.Join(Constants.WorkingDirectory, "logs"));
+        public DirectoryInfo LogDirectory { get; }
         public static string FileExt { get; } = ".txt";
 
-        static Logger()
+        public Logger(string dirName)
         {
+            LogDirectory = new DirectoryInfo(Path.Join(Constants.WorkingDirectory, dirName));
             LogDirectory.Create();
+
+            Log($"[{DateTime.Now}]");
+            CleanDirectory();
         }
 
-        public static void Log(string msg)
+        public void Log(string msg)
         {
             using (StreamWriter fs = GetLogFileStream())
             {
-                fs.WriteLine($"[{DateTime.Now}]");
                 fs.WriteLine(msg);
                 fs.WriteLine();
             }
         }
 
-        public static void Log(Exception e)
+        public void Log(Exception e)
         {
             Log(e.Message + Environment.NewLine + e.StackTrace);
         }
 
         // Creates a log file named after today's date (sans time!) or returns it if it exists
-        private static StreamWriter GetLogFileStream()
+        private StreamWriter GetLogFileStream()
         {
             string filePath = Path.Join(LogDirectory.FullName, DateTime.Today.Date.ToShortDateString() + FileExt);
             FileInfo logFile = new FileInfo(filePath);
@@ -44,7 +46,7 @@ namespace LobitaDownloader
         }
 
         // Removes the oldest log files if the total number of files is greater than intended
-        public static void CleanDirectory()
+        public void CleanDirectory()
         {
             FileInfo[] files = LogDirectory.GetFiles();
 

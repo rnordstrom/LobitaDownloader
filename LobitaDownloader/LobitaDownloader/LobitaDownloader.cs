@@ -11,50 +11,92 @@ namespace LobitaDownloader
         MANUAL
     }
 
-    public struct ImageInfo
+    public abstract class FileData
     {
-        public string FileExt { get; set; }
-        public Bitmap Image { get; set; }
+        public string FileExt { get; }
+
+        public FileData(string ext)
+        {
+            FileExt = ext;
+        }
+    }
+
+    public class ImageData : FileData
+    {
+        public Bitmap Image { get; }
+
+        public ImageData(string ext, Bitmap img) : base(ext)
+        {
+            Image = img;
+        }
+    }
+
+    public class VideoData : FileData
+    {
+        public string FileName { get; }
+        public byte[] Video { get; }
+
+        public VideoData(string ext, string fn, byte[] v) : base(ext)
+        {
+            FileName = fn;
+            Video = v;
+        }
     }
 
     public static class Constants
     {
-        public static string WorkingDirectory { get; } 
-            = Directory.GetCurrentDirectory();
-        public static string[] CmdHandles = new string[] {
+        public static string WorkingDirectory { get; } = Directory.GetCurrentDirectory();
+        public static string[] ImageCmdHandles = new string[] 
+        {
             "lysithea",
             "holo",
             "fenrir",
             "myuri",
             "ryouko",
             "nagatoro",
-            "velvet"};
+            "velvet"
+        };
+        public static string[] VideoCmdHandles = new string[]
+        {
+            "OP",
+            "ED"
+        };
     }
 
-    public delegate List<ImageInfo> SourceQuery(string qParam);
+    public delegate List<FileData> SourceQuery(string qParam);
     public delegate string CmdToParam(string cmdHandle);
 
     public class LobitaDownloader
     {
-        static void Main(string[] args)
+        static int Main(string[] args)
         {
-            // Change implementations here
-            IDownloader downloader = 
-                new BooruDownloader(new FolderManager(), new XmlManager());
+            string usageString = "Usage: LobitaDownloader <images|videos>";
 
-            try
+            if (args.Length != 1)
             {
-                // Make sure that the number of log files does not exceed the limit
-                Logger.CleanDirectory();
+                Console.WriteLine(usageString);
 
-                downloader.Download(Constants.CmdHandles);
-            }
-            catch(Exception e)
-            {
-                Logger.Log(e);
+                return -1;
             }
 
-            Logger.Log("Program terminated successfully.");
+            switch (args[0]) 
+            {
+                case "images":
+                    IDownloader imageDownloader =
+                        new BooruDownloader(new FolderImageManager(), new XmlManager());
+                    imageDownloader.Download(Constants.ImageCmdHandles);
+                    break;
+                case "videos":
+                    IDownloader videoDownloader =
+                        new VideoThemeDownloader(new FolderVideoManager(), new XmlManager());
+                    videoDownloader.Download(Constants.VideoCmdHandles);
+                    break;
+                default:
+                    Console.WriteLine(usageString);
+                    return -1;
+            }
+
+            return 0;
         }
     }
 }

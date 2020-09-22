@@ -13,53 +13,60 @@ namespace LobitaDownloader
 {
     public class BooruDownloader : Downloader, IDownloader
     {
-        private Dictionary<string, string> tagsDict;
         private static HttpClient client = new HttpClient();
-        private const string booruUrl = "https://safebooru.org/";
-        private const int hardLimit = 100;
-        private const string baseParams = "index.php?page=dapi&s=post&q=index";
+        private static Logger logger = new Logger("images_logs");
+        private static List<string> banFilter;
+        private Dictionary<string, string> tagsDict;
+        private const string BooruUrl = "https://safebooru.org/";
+        private const int HardLimit = 100;
+        private const string BaseParams = "index.php?page=dapi&s=post&q=index";
         private const int ImgsToFetch = 20;
         private const long SizeOfMB = 1024 * 1024;
         private const long MaxImgSize = 7 * SizeOfMB;
 
         public BooruDownloader(IPersistenceManager pm, IConfigManager cm) : base(pm, cm)
         {
-            client.BaseAddress = new Uri(booruUrl);
+            client.BaseAddress = new Uri(BooruUrl);
             client.DefaultRequestHeaders.Accept.Clear();
             client.DefaultRequestHeaders.Accept.Add(
                 new MediaTypeWithQualityHeaderValue("application/xml"));
 
             tagsDict = new Dictionary<string, string>() 
             {
-                { Constants.CmdHandles[0], "lysithea_von_ordelia" },
-                { Constants.CmdHandles[1], "holo" },
-                { Constants.CmdHandles[2], "fenrir_(shingeki_no_bahamut)" },
-                { Constants.CmdHandles[3], "myuri_(spice_and_wolf)" },
-                { Constants.CmdHandles[4], "ookami_ryouko" },
-                { Constants.CmdHandles[5], "nagatoro" },
-                { Constants.CmdHandles[6], "velvet_crowe" }
+                { Constants.ImageCmdHandles[0], "lysithea_von_ordelia" },
+                { Constants.ImageCmdHandles[1], "holo" },
+                { Constants.ImageCmdHandles[2], "fenrir_(shingeki_no_bahamut)" },
+                { Constants.ImageCmdHandles[3], "myuri_(spice_and_wolf)" },
+                { Constants.ImageCmdHandles[4], "ookami_ryouko" },
+                { Constants.ImageCmdHandles[5], "nagatoro" },
+                { Constants.ImageCmdHandles[6], "velvet_crowe" }
             };
+
+            banFilter = new List<string>();
+            banFilter.Add("1880445");
         }
 
         public void Download(string[] cmdHandles)
         {
             base.Download(cmdHandles, ApiQuery, ConvertToTag);
+
+            logger.Log("Image downloads completed.");
         }
 
-        private static List<ImageInfo> ApiQuery(string tags)
+        private static List<FileData> ApiQuery(string tags)
         {
             // XML element results are fetched from the API
 
-            XmlElement posts = GetPosts(baseParams + $"&tags={tags}").Result;
+            XmlElement posts = GetPosts(BaseParams + $"&tags={tags}").Result;
             XmlNodeList postList;
             List<XmlElement> allElements = new List<XmlElement>();
 
             int count = int.Parse(posts.GetAttribute("count"));
-            int numPages = count / hardLimit;
+            int numPages = count / HardLimit;
 
             for (int pageNum = 0; pageNum <= numPages; pageNum++)
             {
-                posts = GetPosts(baseParams + $"&tags={tags}&pid={pageNum}").Result;
+                posts = GetPosts(BaseParams + $"&tags={tags}&pid={pageNum}").Result;
                 postList = posts.SelectNodes("post");
 
                 foreach (XmlElement post in postList)
@@ -95,54 +102,50 @@ namespace LobitaDownloader
 
             string fileUrl;
             string fileExt;
-            List<ImageInfo> infos = new List<ImageInfo>();
+            List<FileData> fileData = new List<FileData>();
             byte[] data;
             Stream stream;
             Bitmap image;
             bool tried = false;
             XmlElement tempElement;
-            int dataSize = 0;
+            string id = " ";
 
             using (WebClient webClient = new WebClient())
             {
                 foreach (XmlElement element in selected)
                 {
+                    tempElement = element;
+
                     do
                     {
-                        tempElement = element;
-
                         if (tried == true)
                         {
-                            Logger.Log($"Image of size greater than {MaxImgSize} encountered for tags {tags}. Actual image size = {dataSize}.");
+                            logger.Log($"Banned image encountered for tags '{tags}'. ID = {id}.");
 
                             random = RandomIndex(ref chosenRands, count);
                             tempElement = allElements[random];
                         }
 
-                        fileUrl = tempElement.GetAttribute("file_url");
-                        fileExt = "." + fileUrl.Split('.').Last();
-
-                        data = webClient.DownloadData(fileUrl);
-                        dataSize = data.Length;
+                        id = tempElement.GetAttribute("id");
                         tried = true;
                     }
-                    while (dataSize > MaxImgSize); // Implement a fairly wide margin
+                    while (banFilter.Contains(id));
 
+                    fileUrl = tempElement.GetAttribute("file_url");
+                    fileExt = "." + fileUrl.Split('.').Last();
+                    data = webClient.DownloadData(fileUrl);
                     stream = new MemoryStream(data);
                     image = new Bitmap(stream);
 
-                    infos.Add(new ImageInfo { FileExt = fileExt, Image = image });
+                    fileData.Add(new ImageData(fileExt, image));
 
                     tried = false;
                 }
             }
 
-            if (count > ImgsToFetch && selected.Count < ImgsToFetch)
-            {
-                Logger.Log($"{selected.Count} out of {ImgsToFetch} images downloaded for tags {tags}. Total number of images = {count}.");
-            }
+            logger.Log($"Downloaded {selected.Count}/{ImgsToFetch} images for '{tags}'. Total number of images = {count}.");
 
-            return infos;
+            return fileData;
         }
 
         private string ConvertToTag(string cmdHandle) => tagsDict[cmdHandle];
@@ -160,6 +163,7 @@ namespace LobitaDownloader
             return result;
         }
 
+        // Selects a random index for a list. Indices that have been selected previously may not be selected again.
         private static int RandomIndex(ref List<int> chosenRands, int max)
         {
             Random rand = new Random();

@@ -9,11 +9,13 @@ namespace LobitaDownloaderTest
     [TestClass]
     public class LoggerTest
     {
+        private Logger logger = new Logger("images_logs");
+
         [TestMethod]
         public void TestLog()
         {
-            DeleteFiles(Logger.LogDirectory.GetFiles());
-            Assert.IsTrue(Logger.LogDirectory.GetFiles().Length == 0);
+            DeleteFiles(logger.LogDirectory.GetFiles());
+            Assert.IsTrue(logger.LogDirectory.GetFiles().Length == 0);
 
             try
             {
@@ -21,12 +23,12 @@ namespace LobitaDownloaderTest
             }
             catch(Exception e)
             {
-                Logger.Log(e);
+                logger.Log(e);
             }
 
             int extLength = Logger.FileExt.Length;
 
-            FileInfo[] files = Logger.LogDirectory.GetFiles();
+            FileInfo[] files = logger.LogDirectory.GetFiles();
             Assert.IsTrue(files.Length == 1);
             Assert.AreEqual(DateTime.Parse(files[0].Name.Substring(0, files[0].Name.Length - extLength)), DateTime.Today.Date);
 
@@ -39,8 +41,8 @@ namespace LobitaDownloaderTest
         [TestMethod]
         public void TestCleanDirectory()
         {
-            DeleteFiles(Logger.LogDirectory.GetFiles());
-            Assert.IsTrue(Logger.LogDirectory.GetFiles().Length == 0);
+            DeleteFiles(logger.LogDirectory.GetFiles());
+            Assert.IsTrue(logger.LogDirectory.GetFiles().Length == 0);
 
             const int NumFiles = 33;
             const int DesiredNumFiles = 30;
@@ -50,19 +52,19 @@ namespace LobitaDownloaderTest
 
             for (int i = 0; i < NumFiles; i++)
             {
-                filesBefore[i] = new FileInfo(Path.Join(Logger.LogDirectory.FullName, dt.AddDays(i).ToShortDateString() + Logger.FileExt));
+                filesBefore[i] = new FileInfo(Path.Join(logger.LogDirectory.FullName, dt.AddDays(i).ToShortDateString() + Logger.FileExt));
                 using (FileStream fs = filesBefore[i].Create()) { };
                 Console.WriteLine(filesBefore[i].Name);
             }
 
             Console.WriteLine();
 
-            Assert.IsTrue(Logger.LogDirectory.GetFiles().Length > DesiredNumFiles);
+            Assert.IsTrue(logger.LogDirectory.GetFiles().Length > DesiredNumFiles);
 
-            Logger.CleanDirectory();
+            logger.CleanDirectory();
 
             int extLength = Logger.FileExt.Length;
-            FileInfo[] filesAfter = Logger.LogDirectory.GetFiles();
+            FileInfo[] filesAfter = logger.LogDirectory.GetFiles();
             Assert.IsTrue(filesAfter.Length == DesiredNumFiles);
 
             for (int i = 0; i < difference; i++)
