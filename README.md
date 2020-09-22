@@ -1,2 +1,2 @@
 # LobitaDownloader
-Image downloader for use with LobitaBot.
+Media downloader for use with LobitaBot.
