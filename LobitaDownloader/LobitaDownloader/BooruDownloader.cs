@@ -13,8 +13,9 @@ namespace LobitaDownloader
 {
     public class BooruDownloader : Downloader, IDownloader
     {
-        private Dictionary<string, string> tagsDict;
         private static HttpClient client = new HttpClient();
+        private Dictionary<string, string> tagsDict;
+        private static Logger logger = new Logger("images_logs");
         private const string BooruUrl = "https://safebooru.org/";
         private const int HardLimit = 100;
         private const string BaseParams = "index.php?page=dapi&s=post&q=index";
@@ -44,6 +45,8 @@ namespace LobitaDownloader
         public void Download(string[] cmdHandles)
         {
             base.Download(cmdHandles, ApiQuery, ConvertToTag);
+
+            logger.Log("Image downloads completed.");
         }
 
         private static List<FileData> ApiQuery(string tags)
@@ -113,7 +116,7 @@ namespace LobitaDownloader
 
                         if (tried == true)
                         {
-                            Logger.Log($"Image of size greater than {MaxImgSize} encountered for tags {tags}. Actual image size = {dataSize}.");
+                            logger.Log($"Image of size greater than {MaxImgSize} encountered for tags {tags}. Actual image size = {dataSize}.");
 
                             random = RandomIndex(ref chosenRands, count);
                             tempElement = allElements[random];
@@ -137,10 +140,7 @@ namespace LobitaDownloader
                 }
             }
 
-            if (count > ImgsToFetch && selected.Count < ImgsToFetch)
-            {
-                Logger.Log($"{selected.Count} out of {ImgsToFetch} images downloaded for tags {tags}. Total number of images = {count}.");
-            }
+            logger.Log($"Downloaded {selected.Count}/{ImgsToFetch} images for '{tags}'. Total number of images = {count}.");
 
             return fileData;
         }

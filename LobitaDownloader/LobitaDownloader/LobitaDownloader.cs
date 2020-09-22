@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 
@@ -76,20 +75,8 @@ namespace LobitaDownloader
             IDownloader videoDownloader =
                 new VideoThemeDownloader(new FolderVideoManager(), new XmlManager());
 
-            try
-            {
-                // Make sure that the number of log files does not exceed the limit
-                Logger.CleanDirectory();
-
-                //imageDownloader.Download(Constants.ImageCmdHandles);
-                videoDownloader.Download(Constants.VideoCmdHandles);
-            }
-            catch(Exception e)
-            {
-                Logger.Log(e);
-            }
-
-            Logger.Log("Program terminated successfully.");
+            imageDownloader.Download(Constants.ImageCmdHandles);
+            videoDownloader.Download(Constants.VideoCmdHandles);
         }
     }
 }

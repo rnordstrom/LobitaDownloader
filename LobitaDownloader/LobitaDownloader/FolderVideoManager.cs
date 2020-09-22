@@ -4,7 +4,7 @@ using System.IO;
 
 namespace LobitaDownloader
 {
-    class FolderVideoManager : FolderManager, IPersistenceManager
+    public class FolderVideoManager : FolderManager, IPersistenceManager
     {
         private const string videoDir = "videos";
 

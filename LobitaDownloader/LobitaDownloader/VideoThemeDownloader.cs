@@ -7,6 +7,7 @@ namespace LobitaDownloader
 {
     class VideoThemeDownloader : Downloader, IDownloader
     {
+        private Logger logger = new Logger("videos_logs");
         private const string MoeUrl = "https://openings.moe/";
         private const string FileExt = "mp4";
         private const int VideosToFetch = 5;
@@ -17,6 +18,8 @@ namespace LobitaDownloader
         public void Download(string[] cmdHandles)
         {
             base.Download(cmdHandles, HtmlQuery, ToParam);
+
+            logger.Log("Image downloads completed.");
         }
 
         private List<FileData> HtmlQuery(string themeType)
@@ -56,6 +59,8 @@ namespace LobitaDownloader
                     videoData.Add(new VideoData(fileExt, fileName, data));
                 }
             }
+
+            logger.Log($"Downloaded {videoData.Count}/{VideosToFetch} videos for '{themeType}'.");
 
             return videoData;
         }
