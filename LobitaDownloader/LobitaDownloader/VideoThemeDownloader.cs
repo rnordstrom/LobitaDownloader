@@ -24,32 +24,32 @@ namespace LobitaDownloader
             HtmlWeb web = new HtmlWeb();
             HtmlDocument doc;
             HtmlNode videoNode;
-            List<HtmlNode> nodeList = new List<HtmlNode>();
-
-            for (int i = 0; i < VideosToFetch; i++)
-            {
-                doc = web.Load(MoeUrl);
-
-                videoNode = doc.GetElementbyId("bgvid")
-                    .SelectSingleNode($"//source[@type = 'video/{FileExt}']");
-
-                nodeList.Add(videoNode);
-                Thread.Sleep(WaitInterval);
-            }
-
+            
             string videoSrc;
-            string fileName;
             string extractedName;
             string fileExt = "." + FileExt;
+            string fileName;
             byte[] data;
             List<FileData> videoData = new List<FileData>();
 
+            // Collect video links and download corresponding video files
+
             using (WebClient webClient = new WebClient())
             {
-                foreach (HtmlNode node in nodeList)
+                for (int i = 0; i < VideosToFetch; i++)
                 {
-                    videoSrc = node.GetAttributeValue("src", null);
-                    extractedName = videoSrc.Split("/")[1].Split(".")[0];
+                    do
+                    {
+                        doc = web.Load(MoeUrl);
+                        videoNode = doc.GetElementbyId("bgvid")
+                            .SelectSingleNode($"//source[@type = 'video/{FileExt}']");
+                        videoSrc = videoNode.GetAttributeValue("src", null);
+                        extractedName = videoSrc.Split("/")[1].Split(".")[0];
+
+                        Thread.Sleep(WaitInterval);
+                    }
+                    while (!extractedName.Contains("-" + themeType));
+
                     fileName = RemoveSpecialChars(extractedName);
                     data = webClient.DownloadData(MoeUrl + videoSrc);
 
