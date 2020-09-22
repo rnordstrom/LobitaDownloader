@@ -14,8 +14,9 @@ namespace LobitaDownloader
     public class BooruDownloader : Downloader, IDownloader
     {
         private static HttpClient client = new HttpClient();
-        private Dictionary<string, string> tagsDict;
         private static Logger logger = new Logger("images_logs");
+        private static List<string> banFilter;
+        private Dictionary<string, string> tagsDict;
         private const string BooruUrl = "https://safebooru.org/";
         private const int HardLimit = 100;
         private const string BaseParams = "index.php?page=dapi&s=post&q=index";
@@ -40,6 +41,9 @@ namespace LobitaDownloader
                 { Constants.ImageCmdHandles[5], "nagatoro" },
                 { Constants.ImageCmdHandles[6], "velvet_crowe" }
             };
+
+            banFilter = new List<string>();
+            banFilter.Add("1880445");
         }
 
         public void Download(string[] cmdHandles)
@@ -104,33 +108,32 @@ namespace LobitaDownloader
             Bitmap image;
             bool tried = false;
             XmlElement tempElement;
-            int dataSize = 0;
+            string id = " ";
 
             using (WebClient webClient = new WebClient())
             {
                 foreach (XmlElement element in selected)
                 {
+                    tempElement = element;
+
                     do
                     {
-                        tempElement = element;
-
                         if (tried == true)
                         {
-                            logger.Log($"Image of size greater than {MaxImgSize} encountered for tags {tags}. Actual image size = {dataSize}.");
+                            logger.Log($"Banned image encountered for tags '{tags}'. ID = {id}.");
 
                             random = RandomIndex(ref chosenRands, count);
                             tempElement = allElements[random];
                         }
 
-                        fileUrl = tempElement.GetAttribute("file_url");
-                        fileExt = "." + fileUrl.Split('.').Last();
-
-                        data = webClient.DownloadData(fileUrl);
-                        dataSize = data.Length;
+                        id = tempElement.GetAttribute("id");
                         tried = true;
                     }
-                    while (dataSize > MaxImgSize); // Implement a fairly wide margin
+                    while (banFilter.Contains(id));
 
+                    fileUrl = tempElement.GetAttribute("file_url");
+                    fileExt = "." + fileUrl.Split('.').Last();
+                    data = webClient.DownloadData(fileUrl);
                     stream = new MemoryStream(data);
                     image = new Bitmap(stream);
 
@@ -160,6 +163,7 @@ namespace LobitaDownloader
             return result;
         }
 
+        // Selects a random index for a list. Indices that have been selected previously may not be selected again.
         private static int RandomIndex(ref List<int> chosenRands, int max)
         {
             Random rand = new Random();
