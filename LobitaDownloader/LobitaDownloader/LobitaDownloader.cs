@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 
@@ -67,16 +68,35 @@ namespace LobitaDownloader
 
     public class LobitaDownloader
     {
-        static void Main(string[] args)
+        static int Main(string[] args)
         {
-            // Change implementations here
-            IDownloader imageDownloader = 
-                new BooruDownloader(new FolderImageManager(), new XmlManager());
-            IDownloader videoDownloader =
-                new VideoThemeDownloader(new FolderVideoManager(), new XmlManager());
+            string usageString = "Usage: LobitaDownloader <images|videos>";
 
-            imageDownloader.Download(Constants.ImageCmdHandles);
-            videoDownloader.Download(Constants.VideoCmdHandles);
+            if (args.Length != 1)
+            {
+                Console.WriteLine(usageString);
+
+                return -1;
+            }
+
+            switch (args[0]) 
+            {
+                case "images":
+                    IDownloader imageDownloader =
+                        new BooruDownloader(new FolderImageManager(), new XmlManager());
+                    imageDownloader.Download(Constants.ImageCmdHandles);
+                    break;
+                case "videos":
+                    IDownloader videoDownloader =
+                        new VideoThemeDownloader(new FolderVideoManager(), new XmlManager());
+                    videoDownloader.Download(Constants.VideoCmdHandles);
+                    break;
+                default:
+                    Console.WriteLine(usageString);
+                    return -1;
+            }
+
+            return 0;
         }
     }
 }

@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "LobitaDownloader": {
+      "commandName": "Project",
+      "commandLineArgs": "videos"
+    }
+  }
+}
