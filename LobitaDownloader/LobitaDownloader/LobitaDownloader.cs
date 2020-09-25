@@ -63,9 +63,9 @@ namespace LobitaDownloader
             "OP",
             "ED"
         };
-        public static Logger SystemLogger { get; } = new Logger("syslogs");
-        public static Logger ImageLogger { get; } = new Logger("images_logs");
-        public static Logger VideoLogger { get; } = new Logger("videos_logs");
+        public static Logger SystemLogger { get; set; }
+        public static Logger ImageLogger { get; set; }
+        public static Logger VideoLogger { get; set; }
     }
 
     public delegate List<FileData> SourceQuery(string qParam);
@@ -84,16 +84,20 @@ namespace LobitaDownloader
                 return -1;
             }
 
+            Resources.SystemLogger = new Logger("syslogs");
+
             try
             {
                 switch (args[0])
                 {
                     case "images":
+                        Resources.ImageLogger = new Logger("images_logs");
                         IDownloader imageDownloader =
                             new BooruDownloader(new FolderImageManager(), new XmlManager());
                         imageDownloader.Download(Resources.ImageCmdHandles);
                         break;
                     case "videos":
+                        Resources.VideoLogger = new Logger("videos_logs");
                         IDownloader videoDownloader =
                             new VideoThemeDownloader(new FolderVideoManager(), new XmlManager());
                         videoDownloader.Download(Resources.VideoCmdHandles);
