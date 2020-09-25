@@ -8,7 +8,7 @@ namespace LobitaDownloader
 
         public FolderManager(string dirName)
         {
-            DataDirectory = Directory.CreateDirectory(Path.Join(Constants.WorkingDirectory, dirName));
+            DataDirectory = Directory.CreateDirectory(Path.Join(Resources.WorkingDirectory, dirName));
         }
 
         protected DirectoryInfo InitDirectory(string cmdHandle)

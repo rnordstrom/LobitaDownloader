@@ -12,7 +12,7 @@ namespace LobitaDownloader
 
         public Logger(string dirName)
         {
-            LogDirectory = new DirectoryInfo(Path.Join(Constants.WorkingDirectory, dirName));
+            LogDirectory = new DirectoryInfo(Path.Join(Resources.WorkingDirectory, dirName));
             LogDirectory.Create();
 
             Log($"[{DateTime.Now}]");

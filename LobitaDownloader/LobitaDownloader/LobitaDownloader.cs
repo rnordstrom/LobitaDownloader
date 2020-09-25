@@ -24,10 +24,12 @@ namespace LobitaDownloader
     public class ImageData : FileData
     {
         public Bitmap Image { get; }
+        public string ID { get; }
 
-        public ImageData(string ext, Bitmap img) : base(ext)
+        public ImageData(string ext, Bitmap img, string id) : base(ext)
         {
             Image = img;
+            ID = id;
         }
     }
 
@@ -43,7 +45,7 @@ namespace LobitaDownloader
         }
     }
 
-    public static class Constants
+    public static class Resources
     {
         public static string WorkingDirectory { get; } = Directory.GetCurrentDirectory();
         public static string[] ImageCmdHandles = new string[] 
@@ -61,6 +63,9 @@ namespace LobitaDownloader
             "OP",
             "ED"
         };
+        public static Logger SystemLogger { get; set; }
+        public static Logger ImageLogger { get; set; }
+        public static Logger VideoLogger { get; set; }
     }
 
     public delegate List<FileData> SourceQuery(string qParam);
@@ -79,22 +84,35 @@ namespace LobitaDownloader
                 return -1;
             }
 
-            switch (args[0]) 
+            Resources.SystemLogger = new Logger("syslogs");
+
+            try
             {
-                case "images":
-                    IDownloader imageDownloader =
-                        new BooruDownloader(new FolderImageManager(), new XmlManager());
-                    imageDownloader.Download(Constants.ImageCmdHandles);
-                    break;
-                case "videos":
-                    IDownloader videoDownloader =
-                        new VideoThemeDownloader(new FolderVideoManager(), new XmlManager());
-                    videoDownloader.Download(Constants.VideoCmdHandles);
-                    break;
-                default:
-                    Console.WriteLine(usageString);
-                    return -1;
+                switch (args[0])
+                {
+                    case "images":
+                        Resources.ImageLogger = new Logger("images_logs");
+                        IDownloader imageDownloader =
+                            new BooruDownloader(new FolderImageManager(), new XmlManager());
+                        imageDownloader.Download(Resources.ImageCmdHandles);
+                        break;
+                    case "videos":
+                        Resources.VideoLogger = new Logger("videos_logs");
+                        IDownloader videoDownloader =
+                            new VideoThemeDownloader(new FolderVideoManager(), new XmlManager());
+                        videoDownloader.Download(Resources.VideoCmdHandles);
+                        break;
+                    default:
+                        Console.WriteLine(usageString);
+                        return -1;
+                }
             }
+            catch(Exception e)
+            {
+                Resources.SystemLogger.Log(e);
+            }
+
+            Resources.SystemLogger.Log("Application terminated successfully.");
 
             return 0;
         }

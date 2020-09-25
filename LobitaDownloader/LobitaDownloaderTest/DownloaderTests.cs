@@ -15,7 +15,7 @@ namespace LobitaDownloaderTest
             IConfigManager cm = new XmlManager();
             TestDownloader testDL = new TestDownloader(pm, cm);
 
-            testDL.Download(Constants.ImageCmdHandles);
+            testDL.Download(Resources.ImageCmdHandles);
         }
     }
 
@@ -38,8 +38,8 @@ namespace LobitaDownloaderTest
         {
             string fileExt = ".png";
             Bitmap image = new Bitmap(10, 10); 
-            ImageData info1 = new ImageData(fileExt, image);
-            ImageData info2 = new ImageData(fileExt, image);
+            ImageData info1 = new ImageData(fileExt, image, "1234");
+            ImageData info2 = new ImageData(fileExt, image, "1235");
 
             return new List<FileData>() { info1, info2 };
         }

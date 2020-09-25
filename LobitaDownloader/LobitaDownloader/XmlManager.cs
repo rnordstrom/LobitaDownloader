@@ -11,7 +11,7 @@ namespace LobitaDownloader
 
         public XmlManager()
         {
-            doc = XDocument.Load(Path.Join(Constants.WorkingDirectory, configFile));
+            doc = XDocument.Load(Path.Join(Resources.WorkingDirectory, configFile));
         }
 
         public AutoMode CheckAutoMode(string cmdHandle)

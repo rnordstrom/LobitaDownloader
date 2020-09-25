@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Runtime.InteropServices;
 
 namespace LobitaDownloader
 {
@@ -39,10 +40,18 @@ namespace LobitaDownloader
                 }
                 else
                 {
-                    continue; // Any other format may cause a GDI+ error(?)
+                    continue;
                 }
 
-                image.Image.Save(fileName); 
+                try
+                {
+                    image.Image.Save(fileName);
+                }
+                catch(ExternalException e)
+                {
+                    Resources.ImageLogger.Log(e);
+                    Resources.ImageLogger.Log($"Error encountered while saving image for {cmdHandle}. ID = {image.ID}.");
+                }
             }
         }
     }

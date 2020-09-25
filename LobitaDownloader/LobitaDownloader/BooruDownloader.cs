@@ -14,15 +14,12 @@ namespace LobitaDownloader
     public class BooruDownloader : Downloader, IDownloader
     {
         private static HttpClient client = new HttpClient();
-        private static Logger logger = new Logger("images_logs");
         private static List<string> banFilter;
         private Dictionary<string, string> tagsDict;
         private const string BooruUrl = "https://safebooru.org/";
         private const int HardLimit = 100;
         private const string BaseParams = "index.php?page=dapi&s=post&q=index";
         private const int ImgsToFetch = 20;
-        private const long SizeOfMB = 1024 * 1024;
-        private const long MaxImgSize = 7 * SizeOfMB;
 
         public BooruDownloader(IPersistenceManager pm, IConfigManager cm) : base(pm, cm)
         {
@@ -33,13 +30,13 @@ namespace LobitaDownloader
 
             tagsDict = new Dictionary<string, string>() 
             {
-                { Constants.ImageCmdHandles[0], "lysithea_von_ordelia" },
-                { Constants.ImageCmdHandles[1], "holo" },
-                { Constants.ImageCmdHandles[2], "fenrir_(shingeki_no_bahamut)" },
-                { Constants.ImageCmdHandles[3], "myuri_(spice_and_wolf)" },
-                { Constants.ImageCmdHandles[4], "ookami_ryouko" },
-                { Constants.ImageCmdHandles[5], "nagatoro" },
-                { Constants.ImageCmdHandles[6], "velvet_crowe" }
+                { Resources.ImageCmdHandles[0], "lysithea_von_ordelia" },
+                { Resources.ImageCmdHandles[1], "holo" },
+                { Resources.ImageCmdHandles[2], "fenrir_(shingeki_no_bahamut)" },
+                { Resources.ImageCmdHandles[3], "myuri_(spice_and_wolf)" },
+                { Resources.ImageCmdHandles[4], "ookami_ryouko" },
+                { Resources.ImageCmdHandles[5], "nagatoro" },
+                { Resources.ImageCmdHandles[6], "velvet_crowe" }
             };
 
             banFilter = new List<string>();
@@ -50,7 +47,7 @@ namespace LobitaDownloader
         {
             base.Download(cmdHandles, ApiQuery, ConvertToTag);
 
-            logger.Log("Image downloads completed.");
+            Resources.SystemLogger.Log("Image downloads completed.");
         }
 
         private static List<FileData> ApiQuery(string tags)
@@ -120,7 +117,7 @@ namespace LobitaDownloader
                     {
                         if (tried == true)
                         {
-                            logger.Log($"Banned image encountered for tags '{tags}'. ID = {id}.");
+                            Resources.ImageLogger.Log($"Banned image encountered for tags '{tags}'. ID = {id}.");
 
                             random = RandomIndex(ref chosenRands, count);
                             tempElement = allElements[random];
@@ -137,13 +134,13 @@ namespace LobitaDownloader
                     stream = new MemoryStream(data);
                     image = new Bitmap(stream);
 
-                    fileData.Add(new ImageData(fileExt, image));
+                    fileData.Add(new ImageData(fileExt, image, id));
 
                     tried = false;
                 }
             }
 
-            logger.Log($"Downloaded {selected.Count}/{ImgsToFetch} images for '{tags}'. Total number of images = {count}.");
+            Resources.ImageLogger.Log($"Downloaded {selected.Count}/{ImgsToFetch} images for '{tags}'. Total number of images = {count}.");
 
             return fileData;
         }

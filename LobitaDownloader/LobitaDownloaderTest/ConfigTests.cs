@@ -11,7 +11,7 @@ namespace LobitaDownloaderTest
         {
             IConfigManager cm = new XmlManager();
 
-            foreach (string cmd in Constants.ImageCmdHandles)
+            foreach (string cmd in Resources.ImageCmdHandles)
             {
                 Assert.IsTrue(cm.CheckAutoMode(cmd) == AutoMode.AUTO || cm.CheckAutoMode(cmd) == AutoMode.MANUAL);
             }
