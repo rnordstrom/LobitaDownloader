@@ -56,7 +56,8 @@ namespace LobitaDownloader
             "myuri",
             "ryouko",
             "nagatoro",
-            "velvet"
+            "velvet",
+            "hololive"
         };
         public static string[] VideoCmdHandles = new string[]
         {

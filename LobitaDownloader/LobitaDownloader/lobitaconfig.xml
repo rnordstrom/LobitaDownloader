@@ -24,4 +24,20 @@
 		<handle>nagatoro</handle>
 		<automode>AUTO</automode>
 	</command>
+  <command>
+    <handle>velvet</handle>
+    <automode>AUTO</automode>
+  </command>
+  <command>
+    <handle>hololive</handle>
+    <automode>AUTO</automode>
+  </command>
+  <command>
+    <handle>OP</handle>
+    <automode>AUTO</automode>
+  </command>
+  <command>
+    <handle>ED</handle>
+    <automode>AUTO</automode>
+  </command>
 </commands>

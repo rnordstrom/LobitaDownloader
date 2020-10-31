@@ -36,7 +36,8 @@ namespace LobitaDownloader
                 { Resources.ImageCmdHandles[3], "myuri_(spice_and_wolf)" },
                 { Resources.ImageCmdHandles[4], "ookami_ryouko" },
                 { Resources.ImageCmdHandles[5], "nagatoro" },
-                { Resources.ImageCmdHandles[6], "velvet_crowe" }
+                { Resources.ImageCmdHandles[6], "velvet_crowe" },
+                { Resources.ImageCmdHandles[7], "hololive" }
             };
 
             banFilter = new List<string>();
