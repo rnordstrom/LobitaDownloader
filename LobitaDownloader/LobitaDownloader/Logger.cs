@@ -23,8 +23,11 @@ namespace LobitaDownloader
         {
             using (StreamWriter fs = GetLogFileStream())
             {
-                fs.WriteLine(msg);
-                fs.WriteLine();
+                if (fs != null)
+                {
+                    fs.WriteLine(msg);
+                    fs.WriteLine();
+                }
             }
         }
 
@@ -39,8 +42,15 @@ namespace LobitaDownloader
             string filePath = Path.Join(LogDirectory.FullName, DateTime.Today.Date.ToShortDateString() + FileExt);
             FileInfo logFile = new FileInfo(filePath);
             StreamWriter logStream;
-            
-            logStream = logFile.AppendText();
+
+            try
+            {
+                logStream = logFile.AppendText();
+            }
+            catch (IOException)
+            {
+                logStream = null;
+            }
 
             return logStream;
         }
