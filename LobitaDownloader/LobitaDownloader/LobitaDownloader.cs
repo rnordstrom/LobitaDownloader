@@ -103,6 +103,11 @@ namespace LobitaDownloader
                             new VideoThemeDownloader(new FolderVideoManager(), new XmlManager());
                         videoDownloader.Download(Resources.VideoCmdHandles);
                         break;
+                    case "index":
+                        BooruDownloader indexBuilder =
+                            new BooruDownloader(new FolderImageManager(), new XmlManager());
+                        indexBuilder.BuildIndex();
+                        break;
                     default:
                         Console.WriteLine(usageString);
                         return -1;
