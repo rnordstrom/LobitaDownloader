@@ -25,7 +25,7 @@ namespace LobitaDownloader
         private const int HardLimit = 100;
         private const string BaseParams = "index.php?page=dapi&s=post&q=index";
         private const int ImgsToFetch = 20;
-        private const int NumThreads = 16;
+        private int numThreads = 0;
         private const int TagsLimit = 1000;
         private const int PostsLimit = 1000;
 
@@ -50,6 +50,8 @@ namespace LobitaDownloader
 
             banFilter = new List<string>();
             banFilter.Add("1880445");
+
+            numThreads = int.Parse(Environment.GetEnvironmentVariable("NUM_THREADS"));
         }
 
         public void Download(string[] cmdHandles)
@@ -191,13 +193,13 @@ namespace LobitaDownloader
             while (tagNodes.Count != 0);
             //while (index.Keys.Count < TagsLimit);
 
-            int partitionSize = (int) Math.Round((double) index.Keys.Count / NumThreads);
-            Thread[] threads = new Thread[NumThreads];
-            Tuple<int, int>[] limits = new Tuple<int, int>[NumThreads];
+            int partitionSize = (int) Math.Round((double) index.Keys.Count / numThreads);
+            Thread[] threads = new Thread[numThreads];
+            Tuple<int, int>[] limits = new Tuple<int, int>[numThreads];
 
-            for (int i = 0; i < NumThreads; i++)
+            for (int i = 0; i < numThreads; i++)
             {
-                if (i == NumThreads - 1)
+                if (i == numThreads - 1)
                 {
                     limits[i] = new Tuple<int, int>(partitionSize * i, index.Keys.Count - 1);
                 }
@@ -265,7 +267,7 @@ namespace LobitaDownloader
             TimeSpan timespan = TimeSpan.FromMilliseconds(watch.ElapsedMilliseconds);
             string timeString = string.Format("{0:D2}h:{1:D2}m:{2:D2}s:{3:D3}ms", timespan.Hours, timespan.Minutes, timespan.Seconds, timespan.Milliseconds);
 
-            Resources.SystemLogger.Log($"Processed {index.Keys.Count} tags in {timeString} using {NumThreads} thread(s).");
+            Resources.SystemLogger.Log($"Processed {index.Keys.Count} tags in {timeString} using {numThreads} thread(s).");
         }
 
         private void GetLinksForTag(ref ConcurrentDictionary<string, List<string>> index, int start, int end)
@@ -399,7 +401,7 @@ namespace LobitaDownloader
 
         private void ClearBelow()
         {
-            for (int i = NumThreads; i < NumThreads + 10; i++)
+            for (int i = numThreads; i < numThreads + 10; i++)
             {
                 Console.SetCursorPosition(0, i);
                 Console.Write(new string(' ', Console.WindowWidth));
