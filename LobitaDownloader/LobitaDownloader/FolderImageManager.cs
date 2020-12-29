@@ -12,6 +12,11 @@ namespace LobitaDownloader
 
         public FolderImageManager() : base(imageDir) { }
 
+        public void Clean()
+        {
+            throw new NotImplementedException();
+        }
+
         public void Persist(string cmdHandle, List<FileData> imageData)
         {
             Console.WriteLine($"Storing images for {cmdHandle}...");
@@ -53,6 +58,11 @@ namespace LobitaDownloader
                     Resources.ImageLogger.Log($"Error encountered while saving image for {cmdHandle}. ID = {image.ID}.");
                 }
             }
+        }
+
+        public void PersistBatch(IDictionary<string, List<FileData>> fileIndex)
+        {
+            throw new NotImplementedException();
         }
     }
 }

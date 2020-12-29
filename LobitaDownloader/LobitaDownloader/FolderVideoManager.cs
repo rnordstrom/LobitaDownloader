@@ -10,6 +10,11 @@ namespace LobitaDownloader
 
         public FolderVideoManager() : base(videoDir) { }
 
+        public void Clean()
+        {
+            throw new NotImplementedException();
+        }
+
         public void Persist(string cmdHandle, List<FileData> videoData)
         {
             Console.WriteLine($"Storing videos for {cmdHandle}...");
@@ -20,6 +25,11 @@ namespace LobitaDownloader
             {
                 File.WriteAllBytesAsync(Path.Join(di.FullName, video.FileName + video.FileExt), video.Video);
             }
+        }
+
+        public void PersistBatch(IDictionary<string, List<FileData>> fileIndex)
+        {
+            throw new NotImplementedException();
         }
     }
 }

@@ -45,6 +45,16 @@ namespace LobitaDownloader
         }
     }
 
+    public class LinkData : FileData
+    {
+        public string Link { get; }
+
+        public LinkData(string link) : base(null)
+        {
+            Link = link;
+        }
+    }
+
     public static class Resources
     {
         public static string WorkingDirectory { get; } = Directory.GetCurrentDirectory();
@@ -94,7 +104,7 @@ namespace LobitaDownloader
                     case "images":
                         Resources.ImageLogger = new Logger("images_logs");
                         IDownloader imageDownloader =
-                            new BooruDownloader(new FolderImageManager(), new XmlManager());
+                            new ImageDownloader(new FolderImageManager(), new XmlManager());
                         imageDownloader.Download(Resources.ImageCmdHandles);
                         break;
                     case "videos":
@@ -104,8 +114,8 @@ namespace LobitaDownloader
                         videoDownloader.Download(Resources.VideoCmdHandles);
                         break;
                     case "index":
-                        BooruDownloader indexBuilder =
-                            new BooruDownloader(new FolderImageManager(), new XmlManager());
+                        IndexBuilder indexBuilder =
+                            new IndexBuilder(new DbImageManager());
                         indexBuilder.BuildIndex();
                         break;
                     default:
