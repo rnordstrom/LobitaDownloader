@@ -1,7 +1,6 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using LobitaDownloader;
 
-namespace LobitaDownloaderTest
+namespace LobitaDownloader.Tests
 {
     [TestClass]
     public class ConfigTests
@@ -9,7 +8,7 @@ namespace LobitaDownloaderTest
         [TestMethod]
         public void TestCheckAutoMode()
         {
-            IConfigManager cm = new XmlManager();
+            IConfigManager cm = new XmlConfigManager();
 
             foreach (string cmd in Resources.ImageCmdHandles)
             {

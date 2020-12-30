@@ -1,10 +1,9 @@
-﻿using LobitaDownloader;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 
-namespace LobitaDownloaderTest
+namespace LobitaDownloader.Tests
 {
     [TestClass]
     public class PersistenceTests

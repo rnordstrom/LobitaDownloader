@@ -26,10 +26,5 @@ namespace LobitaDownloader
                 File.WriteAllBytesAsync(Path.Join(di.FullName, video.FileName + video.FileExt), video.Video);
             }
         }
-
-        public void PersistBatch(IDictionary<string, List<FileData>> fileIndex)
-        {
-            throw new NotImplementedException();
-        }
     }
 }

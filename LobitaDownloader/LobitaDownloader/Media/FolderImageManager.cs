@@ -59,10 +59,5 @@ namespace LobitaDownloader
                 }
             }
         }
-
-        public void PersistBatch(IDictionary<string, List<FileData>> fileIndex)
-        {
-            throw new NotImplementedException();
-        }
     }
 }
