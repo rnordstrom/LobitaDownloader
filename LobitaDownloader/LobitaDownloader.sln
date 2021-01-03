@@ -5,7 +5,7 @@ VisualStudioVersion = 16.0.30413.136
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LobitaDownloader", "LobitaDownloader\LobitaDownloader.csproj", "{61D615DA-BA48-4744-8AE2-11829E6703EF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LobitaDownloaderTest", "LobitaDownloaderTest\LobitaDownloaderTest.csproj", "{F62A4C0B-5E02-4A99-BAE6-1E7E52B2BE20}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LobitaDownloaderTest", "LobitaDownloaderTest\LobitaDownloaderTest.csproj", "{F62A4C0B-5E02-4A99-BAE6-1E7E52B2BE20}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

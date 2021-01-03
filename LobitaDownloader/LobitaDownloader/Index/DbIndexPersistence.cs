@@ -18,24 +18,39 @@ namespace LobitaDownloader
             conn = new MySqlConnection(connStr);
         }
 
-        public void Clean()
+        public void CleanTagLinks()
+        {
+            List<string> cmds = new List<string>();
+
+            cmds.Add("DELETE FROM tags");
+            cmds.Add("ALTER TABLE tags AUTO_INCREMENT = 1");
+            cmds.Add("ALTER TABLE links AUTO_INCREMENT = 1");
+
+            Clean(cmds);
+        }
+
+        public void CleanSeriesTags()
+        {
+            List<string> cmds = new List<string>();
+
+            cmds.Add("DELETE FROM series");
+            cmds.Add("ALTER TABLE series AUTO_INCREMENT = 1");
+
+            Clean(cmds);
+        }
+
+        private void Clean(List<string> cmds)
         {
             try
             {
                 conn.Open();
 
-                List<string> cmds = new List<string>();
                 MySqlCommand cmd;
-
-                cmds.Add("DELETE FROM tags");
-                cmds.Add("DELETE FROM series");
-                cmds.Add("ALTER TABLE tags AUTO_INCREMENT = 1");
-                cmds.Add("ALTER TABLE links AUTO_INCREMENT = 1");
-                cmds.Add("ALTER TABLE series AUTO_INCREMENT = 1");
 
                 foreach (string s in cmds)
                 {
                     cmd = new MySqlCommand(s, conn);
+                    cmd.CommandTimeout = 3600;
                     cmd.ExecuteNonQuery();
                 }
             }
@@ -58,7 +73,7 @@ namespace LobitaDownloader
             string output;
             StringBuilder insertTagLinks;
             int id = 0;
-            int i = 0;
+            int i = 1;
             int j;
             MySqlCommand cmd;
             MySqlDataReader rdr;
@@ -74,7 +89,7 @@ namespace LobitaDownloader
                 {
                     transaction = conn.BeginTransaction();
 
-                    output = $"Writing tag {i++ + 1} out of {index.Keys.Count}.";
+                    output = $"Writing tag ({i++} / {index.Keys.Count}).";
 
                     PrintUtils.PrintRow(output, 0, 0);
 
@@ -114,6 +129,7 @@ namespace LobitaDownloader
                     {
                         cmd = new MySqlCommand(insertTagLinks.ToString(), conn);
 
+                        cmd.CommandTimeout = 3600;
                         cmd.ExecuteNonQuery();
                     }
 
@@ -138,17 +154,18 @@ namespace LobitaDownloader
             conn.Close();
         }
 
-        public void PersistSeriesTags(IDictionary<string, List<string>> index)
+        public void PersistSeriesTags(IDictionary<string, HashSet<string>> index)
         {
             string replacedName;
             string output;
             string querySeriesId;
-            string queryTagId;
+            string queryTagIds;
             StringBuilder insertSeriesTags;
+            StringBuilder allTags;
             int seriesId = 0;
-            int tagId = 0;
-            int i = 0;
-            int j;
+            int tagId;
+            int i = 1;
+            int j = 0; ;
             MySqlCommand cmd;
             MySqlDataReader rdr;
             MySqlTransaction transaction = null;
@@ -162,7 +179,7 @@ namespace LobitaDownloader
                 foreach (string seriesName in index.Keys)
                 {
                     transaction = conn.BeginTransaction();
-                    output = $"Writing series {i++ + 1} out of {index.Keys.Count}.";
+                    output = $"Writing series ({i++} / {index.Keys.Count}).";
 
                     PrintUtils.PrintRow(output, 0, 0);
 
@@ -179,45 +196,64 @@ namespace LobitaDownloader
 
                     rdr.Close();
 
-                    insertSeriesTags = new StringBuilder("INSERT INTO series_tags(tag_id, series_id) VALUES");
-                    j = 0;
-
-                    foreach (string tagName in index[seriesName])
+                    if (index[seriesName].Count > 0)
                     {
-                        replacedName = tagName.Replace("'", "''");
-                        queryTagId = $"SELECT id FROM tags WHERE name='{replacedName}'";
+                        allTags = new StringBuilder();
 
-                        cmd = new MySqlCommand(queryTagId, conn);
+                        foreach (string tagName in index[seriesName])
+                        {
+                            replacedName = tagName.Replace("'", "''");
+
+                            if (j < index[seriesName].Count - 1)
+                            {
+                                allTags.Append($"name = '{replacedName}' OR ");
+                            }
+                            else
+                            {
+                                allTags.Append($"name = '{replacedName}'");
+                            }
+
+                            j++;
+                        }
+
+                        queryTagIds = $"SELECT id FROM tags WHERE({allTags})";
+                        cmd = new MySqlCommand(queryTagIds, conn);
+
+                        cmd.CommandTimeout = 3600;
+
                         rdr = cmd.ExecuteReader();
+                        insertSeriesTags = new StringBuilder("INSERT INTO series_tags(tag_id, series_id) VALUES");
+                        j = 0;
+
 
                         while (rdr.Read())
                         {
                             tagId = (int)rdr[0];
+
+                            insertSeriesTags.Append($"({tagId}, {seriesId})");
+
+                            if (j < index[seriesName].Count - 1)
+                            {
+                                insertSeriesTags.Append(",");
+                            }
+                            else
+                            {
+                                insertSeriesTags.Append(";");
+                            }
+
+                            j++;
                         }
 
-                        insertSeriesTags.Append($"('{tagId}', {seriesId})");
-
-                        if (j < index[seriesName].Count - 1)
-                        {
-                            insertSeriesTags.Append(",");
-                        }
-                        else
-                        {
-                            insertSeriesTags.Append(";");
-                        }
-
-                        j++;
                         rdr.Close();
-                    }
 
-                    if (j > 0)
-                    {
                         cmd = new MySqlCommand(insertSeriesTags.ToString(), conn);
 
                         cmd.ExecuteNonQuery();
                     }
 
                     transaction.Commit();
+
+                    j = 0;
                 }
             }
             catch (Exception e)
@@ -238,7 +274,7 @@ namespace LobitaDownloader
             conn.Close();
         }
 
-        private void PersistNames(List<string> names, string tableName)
+        private void PersistNames(ICollection<string> names, string tableName)
         {
             string replacedName;
             MySqlTransaction transaction = null;
@@ -292,6 +328,16 @@ namespace LobitaDownloader
             }
 
             conn.Close();
+        }
+
+        public IDictionary<string, List<string>> GetTagIndex()
+        {
+            throw new NotImplementedException();
+        }
+
+        public IDictionary<string, HashSet<string>> GetSeriesIndex()
+        {
+            throw new NotImplementedException();
         }
     }
 }

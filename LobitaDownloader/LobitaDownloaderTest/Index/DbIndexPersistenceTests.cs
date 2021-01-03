@@ -11,9 +11,10 @@ namespace LobitaDownloader.Tests
         private MySqlConnection conn;
         private DbIndexPersistence database;
         private Dictionary<string, List<string>> tagLinks = new Dictionary<string, List<string>>();
-        private Dictionary<string, List<string>> seriesTags = new Dictionary<string, List<string>>();
+        private Dictionary<string, HashSet<string>> seriesTags = new Dictionary<string, HashSet<string>>();
         string tag1 = "gawr_gura";
         string tag2 = "ninomae_ina'nis";
+        string tag3 = "hilda_valentine_goneril";
         string series = "hololive";
 
         [TestInitialize]
@@ -27,15 +28,18 @@ namespace LobitaDownloader.Tests
 
             tagLinks.Add(tag1, new List<string>() { "1.png", "2.png", "3.jpg" });
             tagLinks.Add(tag2, new List<string>() { "4.png", "5.png" });
+            tagLinks.Add(tag3, new List<string>() { "6.png" });
 
-            seriesTags.Add(series, new List<string>() { tag1, tag2 });
+            seriesTags.Add(series, new HashSet<string>() { tag1, tag2 });
         }
 
         [TestMethod()]
         public void DatabaseQueryTest()
         {
-            database.Clean();
+            database.CleanTagLinks();
             database.PersistTagLinks(tagLinks);
+
+            database.CleanSeriesTags();
             database.PersistSeriesTags(seriesTags);
 
             string replacedName = tag2.Replace("'", "''");
