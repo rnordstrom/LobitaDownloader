@@ -1,10 +1,9 @@
-﻿using LobitaDownloader;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.IO;
 using System.Linq;
 
-namespace LobitaDownloaderTest
+namespace LobitaDownloader.Tests
 {
     [TestClass]
     public class LoggerTest

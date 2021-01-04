@@ -1,9 +1,8 @@
-﻿using LobitaDownloader;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;
 using System.Drawing;
 
-namespace LobitaDownloaderTest
+namespace LobitaDownloader.Tests
 {
     [TestClass]
     public class DownloaderTests
@@ -12,7 +11,7 @@ namespace LobitaDownloaderTest
         public void TestDownload()
         {
             IPersistenceManager pm = new FolderImageManager();
-            IConfigManager cm = new XmlManager();
+            IConfigManager cm = new XmlConfigManager();
             TestDownloader testDL = new TestDownloader(pm, cm);
 
             testDL.Download(Resources.ImageCmdHandles);

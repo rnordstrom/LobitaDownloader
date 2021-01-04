@@ -10,6 +10,11 @@ namespace LobitaDownloader
 
         public FolderVideoManager() : base(videoDir) { }
 
+        public void Clean()
+        {
+            throw new NotImplementedException();
+        }
+
         public void Persist(string cmdHandle, List<FileData> videoData)
         {
             Console.WriteLine($"Storing videos for {cmdHandle}...");

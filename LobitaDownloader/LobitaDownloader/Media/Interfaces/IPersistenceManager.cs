@@ -4,6 +4,6 @@ namespace LobitaDownloader
 {
     public interface IPersistenceManager
     {
-        public void Persist(string cmdHandle, List<FileData> imageInfos);
+        public void Persist(string name, List<FileData> fileInfos);
     }
 }

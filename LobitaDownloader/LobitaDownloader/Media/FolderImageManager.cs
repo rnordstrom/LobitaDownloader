@@ -12,6 +12,11 @@ namespace LobitaDownloader
 
         public FolderImageManager() : base(imageDir) { }
 
+        public void Clean()
+        {
+            throw new NotImplementedException();
+        }
+
         public void Persist(string cmdHandle, List<FileData> imageData)
         {
             Console.WriteLine($"Storing images for {cmdHandle}...");

@@ -76,14 +76,7 @@ namespace LobitaDownloader
     {
         static int Main(string[] args)
         {
-            string usageString = "Usage: LobitaDownloader <images|videos>";
-
-            if (args.Length != 1)
-            {
-                Console.WriteLine(usageString);
-
-                return -1;
-            }
+            string usageString = "Usage: LobitaDownloader index [tags | series] | videos>";
 
             Resources.SystemLogger = new Logger("syslogs");
 
@@ -91,22 +84,45 @@ namespace LobitaDownloader
             {
                 switch (args[0])
                 {
-                    case "images":
+                    /*case "images":
                         Resources.ImageLogger = new Logger("images_logs");
                         IDownloader imageDownloader =
-                            new BooruDownloader(new FolderImageManager(), new XmlManager());
+                            new ImageDownloader(new FolderImageManager(), new XmlConfigManager());
                         imageDownloader.Download(Resources.ImageCmdHandles);
-                        break;
+                        break;*/
                     case "videos":
                         Resources.VideoLogger = new Logger("videos_logs");
                         IDownloader videoDownloader =
-                            new VideoThemeDownloader(new FolderVideoManager(), new XmlManager());
+                            new VideoThemeDownloader(new FolderVideoManager(), new XmlConfigManager());
                         videoDownloader.Download(Resources.VideoCmdHandles);
                         break;
                     case "index":
-                        BooruDownloader indexBuilder =
-                            new BooruDownloader(new FolderImageManager(), new XmlManager());
+                        IndexBuilder indexBuilder = 
+                            new IndexBuilder(new DbIndexPersistence("tagdb"), 
+                            new XmlIndexPersistence(Environment.GetEnvironmentVariable("backup_location")));
                         indexBuilder.BuildIndex();
+                        break;
+                    case "backup":
+                        IndexBuilder backupIndex =
+                            new IndexBuilder(new DbIndexPersistence("tagdb"),
+                            new XmlIndexPersistence(Environment.GetEnvironmentVariable("backup_location")));
+                        if (args.Length > 1)
+                        {
+                            switch (args[1])
+                            {
+                                case "tags":
+                                    backupIndex.BackupRestoreTags();
+                                    break;
+                                case "series":
+                                    backupIndex.BackupRestoreSeries();
+                                    break;
+                            }
+                        }
+                        else
+                        {
+                            backupIndex.BackupRestoreTags();
+                            backupIndex.BackupRestoreSeries();
+                        }
                         break;
                     default:
                         Console.WriteLine(usageString);
@@ -115,7 +131,10 @@ namespace LobitaDownloader
             }
             catch(Exception e)
             {
-                Resources.SystemLogger.Log(e);
+                Console.WriteLine(e.Message + Environment.NewLine + e.StackTrace);
+                Resources.SystemLogger.Log(e.Message + Environment.NewLine + e.StackTrace);
+
+                return -1;
             }
 
             Resources.SystemLogger.Log("Application terminated successfully.");
