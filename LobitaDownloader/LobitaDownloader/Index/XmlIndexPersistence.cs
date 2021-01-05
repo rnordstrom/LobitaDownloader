@@ -1,5 +1,4 @@
-﻿using System.Collections.Concurrent;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Xml;
 
@@ -7,11 +6,13 @@ namespace LobitaDownloader
 {
     public class XmlIndexPersistence : IIndexPersistence
     {
+        private string _backupLocation;
         public string TagsFileName { get; }
         public string SeriesFileName { get; }
 
         public XmlIndexPersistence(string backupLocation)
         {
+            _backupLocation = backupLocation;
             TagsFileName = Path.Join(backupLocation, "tags.xml");
             SeriesFileName = Path.Join(backupLocation, "series.xml");
         }
@@ -164,6 +165,11 @@ namespace LobitaDownloader
             }
 
             return seriesTags;
+        }
+
+        public bool IsConnected()
+        {
+            return Directory.Exists(_backupLocation);
         }
     }
 }

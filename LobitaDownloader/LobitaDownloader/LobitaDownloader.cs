@@ -97,31 +97,59 @@ namespace LobitaDownloader
                         videoDownloader.Download(Resources.VideoCmdHandles);
                         break;
                     case "index":
-                        IndexBuilder indexBuilder = 
-                            new IndexBuilder(new DbIndexPersistence("tagdb"), 
-                            new XmlIndexPersistence(Environment.GetEnvironmentVariable("backup_location")));
-                        indexBuilder.BuildIndex();
+                        DbIndexPersistence persistence = new DbIndexPersistence("tagdb");
+                        XmlIndexPersistence backup = new XmlIndexPersistence(Environment.GetEnvironmentVariable("backup_location"));
+                        IndexBuilder indexBuilder = new IndexBuilder(persistence, backup);
+                        if (CheckConnections(persistence, backup))
+                        {
+                            indexBuilder.BuildIndex();
+                        }
+                        else
+                        {
+                            return -1;
+                        }
                         break;
                     case "backup":
-                        IndexBuilder backupIndex =
-                            new IndexBuilder(new DbIndexPersistence("tagdb"),
-                            new XmlIndexPersistence(Environment.GetEnvironmentVariable("backup_location")));
+                        DbIndexPersistence persistence1 = new DbIndexPersistence("tagdb");
+                        XmlIndexPersistence backup1 = new XmlIndexPersistence(Environment.GetEnvironmentVariable("backup_location"));
+                        IndexBuilder backupIndex = new IndexBuilder(persistence1, backup1);
                         if (args.Length > 1)
                         {
                             switch (args[1])
                             {
                                 case "tags":
-                                    backupIndex.BackupRestoreTags();
+                                    if (CheckConnections(persistence1, backup1))
+                                    {
+                                        backupIndex.BackupRestoreTags();
+                                    }
+                                    else
+                                    {
+                                        return -1;
+                                    }
                                     break;
                                 case "series":
-                                    backupIndex.BackupRestoreSeries();
+                                    if (CheckConnections(persistence1, backup1))
+                                    {
+                                        backupIndex.BackupRestoreSeries();
+                                    }
+                                    else
+                                    {
+                                        return -1;
+                                    }
                                     break;
                             }
                         }
                         else
                         {
-                            backupIndex.BackupRestoreTags();
-                            backupIndex.BackupRestoreSeries();
+                            if (CheckConnections(persistence1, backup1))
+                            {
+                                backupIndex.BackupRestoreTags();
+                                backupIndex.BackupRestoreSeries();
+                            }
+                            else
+                            {
+                                return -1;
+                            }
                         }
                         break;
                     default:
@@ -140,6 +168,28 @@ namespace LobitaDownloader
             Resources.SystemLogger.Log("Application terminated successfully.");
 
             return 0;
+        }
+
+        private static bool CheckConnections(IIndexPersistence persistence, IIndexPersistence backup)
+        {
+            if (persistence.IsConnected() && backup.IsConnected())
+            {
+                return true;
+            }
+            else if (!persistence.IsConnected())
+            {
+                Console.WriteLine("Failed to connect to primary persistence.");
+            }
+            else if (!backup.IsConnected())
+            {
+                Console.WriteLine("Failed to connect to backup storage.");
+            }
+            else
+            {
+                Console.WriteLine("Failed to connect to primary persistence and backup storage.");
+            }
+
+            return false;
         }
     }
 }

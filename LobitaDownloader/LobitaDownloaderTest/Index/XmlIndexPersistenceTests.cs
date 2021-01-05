@@ -41,9 +41,9 @@ namespace LobitaDownloader.Tests
         [TestMethod]
         public void ReadTest()
         {
-            Dictionary<string, List<string>> readTagLinks 
+            Dictionary<string, List<string>> readTagLinks
                 = (Dictionary<string, List<string>>)persistence.GetTagIndex();
-            Dictionary<string, HashSet<string>> readSeriesTags 
+            Dictionary<string, HashSet<string>> readSeriesTags
                 = (Dictionary<string, HashSet<string>>)persistence.GetSeriesIndex();
 
             CollectionAssert.AreEqual(tagLinks.Keys, readTagLinks.Keys);
@@ -63,6 +63,12 @@ namespace LobitaDownloader.Tests
                     Assert.IsTrue(readSeriesTags[series].Contains(s));
                 }
             }
+        }
+
+        [TestMethod()]
+        public void IsConnectedTest()
+        {
+            Assert.IsTrue(persistence.IsConnected());
         }
     }
 }

@@ -41,6 +41,7 @@ namespace LobitaDownloader
             XmlElement tagRoot;
             XmlNodeList tagNodes;
 
+            Console.Clear();
             Console.WriteLine("Building index...");
 
             Stopwatch watch = new Stopwatch();

@@ -1,5 +1,4 @@
-﻿using System.Collections.Concurrent;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace LobitaDownloader
 {
@@ -9,7 +8,9 @@ namespace LobitaDownloader
         public void PersistSeriesTags(IDictionary<string, HashSet<string>> index);
         public void CleanTagLinks();
         public void CleanSeriesTags();
-        IDictionary<string, List<string>> GetTagIndex();
-        IDictionary<string, HashSet<string>> GetSeriesIndex();
+        public IDictionary<string, List<string>> GetTagIndex();
+        public IDictionary<string, HashSet<string>> GetSeriesIndex();
+        public bool IsConnected();
+
     }
 }
