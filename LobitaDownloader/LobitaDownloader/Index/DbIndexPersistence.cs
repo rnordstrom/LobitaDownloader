@@ -1,6 +1,7 @@
 ﻿using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 
@@ -338,6 +339,31 @@ namespace LobitaDownloader
         public IDictionary<string, HashSet<string>> GetSeriesIndex()
         {
             throw new NotImplementedException();
+        }
+
+        public bool IsConnected()
+        {
+            bool isOpen = false;
+
+            try
+            {
+                conn.Open();
+
+                isOpen = conn.State == ConnectionState.Open;
+            }
+            catch (Exception e)
+            {
+                if (Resources.SystemLogger != null)
+                {
+                    Resources.SystemLogger.Log(e.Message + Environment.NewLine + e.StackTrace);
+                }
+
+                Console.WriteLine(e.Message + Environment.NewLine + e.StackTrace);
+            }
+
+            conn.Close();
+
+            return isOpen;
         }
     }
 }

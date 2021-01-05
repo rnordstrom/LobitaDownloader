@@ -9,22 +9,21 @@ namespace LobitaDownloader.Tests
     public class DbIndexPersistenceTests
     {
         private MySqlConnection conn;
-        private DbIndexPersistence database;
         private Dictionary<string, List<string>> tagLinks = new Dictionary<string, List<string>>();
         private Dictionary<string, HashSet<string>> seriesTags = new Dictionary<string, HashSet<string>>();
-        string tag1 = "gawr_gura";
-        string tag2 = "ninomae_ina'nis";
-        string tag3 = "hilda_valentine_goneril";
-        string series = "hololive";
+        private string dbName = "tagdb_test";
+        private string tag1 = "gawr_gura";
+        private string tag2 = "ninomae_ina'nis";
+        private string tag3 = "hilda_valentine_goneril";
+        private string series = "hololive";
 
         [TestInitialize]
         public void Setup()
         {
-            string dbName = "tagdb_test";
+            
             string connStr = $"server=localhost;user=root;database={dbName};port=3306;password={Environment.GetEnvironmentVariable("PWD")}";
 
             conn = new MySqlConnection(connStr);
-            database = new DbIndexPersistence(dbName);
 
             tagLinks.Add(tag1, new List<string>() { "1.png", "2.png", "3.jpg" });
             tagLinks.Add(tag2, new List<string>() { "4.png", "5.png" });
@@ -36,6 +35,8 @@ namespace LobitaDownloader.Tests
         [TestMethod()]
         public void DatabaseQueryTest()
         {
+            DbIndexPersistence database = new DbIndexPersistence(dbName);
+
             database.CleanTagLinks();
             database.PersistTagLinks(tagLinks);
 
@@ -44,11 +45,11 @@ namespace LobitaDownloader.Tests
 
             string replacedName = tag2.Replace("'", "''");
 
-            string queryLinks1 = 
+            string queryLinks1 =
                 $"SELECT COUNT(l.id) " +
                 $"FROM tags as t, links as l " +
                 $"WHERE t.id = l.tag_id AND t.name = '{tag1}'";
-            string queryLinks2 = 
+            string queryLinks2 =
                 $"SELECT COUNT(l.id) " +
                 $"FROM tags as t, links as l " +
                 $"WHERE t.id = l.tag_id AND t.name = '{replacedName}'";
@@ -85,9 +86,17 @@ namespace LobitaDownloader.Tests
 
             Assert.AreEqual(tagLinks[tag1].Count, countList[0]);
             Assert.AreEqual(tagLinks[tag2].Count, countList[1]);
-            Assert.AreEqual(tagLinks.Count, countList[2]);
+            Assert.AreEqual(2, countList[2]);
 
             conn.Close();
+        }
+
+        [TestMethod()]
+        public void IsConnectedTest()
+        {
+            DbIndexPersistence database = new DbIndexPersistence(dbName);
+
+            Assert.IsTrue(database.IsConnected());
         }
     }
 }
