@@ -57,12 +57,7 @@ namespace LobitaDownloader
             }
             catch (Exception e)
             {
-                if (Resources.SystemLogger != null)
-                {
-                    Resources.SystemLogger.Log(e.Message + Environment.NewLine + e.StackTrace);
-                }
-
-                Console.WriteLine(e.Message + Environment.NewLine + e.StackTrace);
+                Report(e);
             }
 
             conn.Close();
@@ -139,12 +134,7 @@ namespace LobitaDownloader
             }
             catch (Exception e)
             {
-                if (Resources.SystemLogger != null)
-                {
-                    Resources.SystemLogger.Log(e.Message + Environment.NewLine + e.StackTrace);
-                }
-
-                Console.WriteLine(e.Message + Environment.NewLine + e.StackTrace);
+                Report(e);
 
                 if (transaction != null)
                 {
@@ -259,12 +249,7 @@ namespace LobitaDownloader
             }
             catch (Exception e)
             {
-                if (Resources.SystemLogger != null)
-                {
-                    Resources.SystemLogger.Log(e.Message + Environment.NewLine + e.StackTrace);
-                }
-
-                Console.WriteLine(e.Message + Environment.NewLine + e.StackTrace);
+                Report(e);
 
                 if (transaction != null)
                 {
@@ -315,17 +300,7 @@ namespace LobitaDownloader
             }
             catch (Exception e)
             {
-                if (Resources.SystemLogger != null)
-                {
-                    Resources.SystemLogger.Log(e.Message + Environment.NewLine + e.StackTrace);
-                }
-
-                Console.WriteLine(e.Message + Environment.NewLine + e.StackTrace);
-
-                if (transaction != null)
-                {
-                    transaction.Rollback();
-                }
+                Report(e);
             }
 
             conn.Close();
@@ -353,17 +328,22 @@ namespace LobitaDownloader
             }
             catch (Exception e)
             {
-                if (Resources.SystemLogger != null)
-                {
-                    Resources.SystemLogger.Log(e.Message + Environment.NewLine + e.StackTrace);
-                }
-
-                Console.WriteLine(e.Message + Environment.NewLine + e.StackTrace);
+                Report(e);
             }
 
             conn.Close();
 
             return isOpen;
+        }
+
+        private void Report(Exception e)
+        {
+            if (Resources.SystemLogger != null)
+            {
+                Resources.SystemLogger.Log(e.Message + Environment.NewLine + e.StackTrace);
+            }
+
+            Console.WriteLine(e.Message + Environment.NewLine + e.StackTrace);
         }
     }
 }

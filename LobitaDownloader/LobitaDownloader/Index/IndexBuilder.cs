@@ -12,6 +12,7 @@ namespace LobitaDownloader
     {
         private IIndexPersistence _persistence;
         private IIndexPersistence _backup;
+        private IConfigManager _config;
         private HttpXmlClient client;
         private const string TestBooruUrl = "https://testbooru.donmai.us/";
         private const string DanBooruUrl = "https://danbooru.donmai.us/";
@@ -22,13 +23,14 @@ namespace LobitaDownloader
         private IDictionary<string, List<string>> tagLinks = new ConcurrentDictionary<string, List<string>>();
         private IDictionary<string, HashSet<string>> seriesTags = new ConcurrentDictionary<string, HashSet<string>>();
 
-        public IndexBuilder(IIndexPersistence persistence, IIndexPersistence backup)
+        public IndexBuilder(IIndexPersistence persistence, IIndexPersistence backup, IConfigManager config)
         {
             _persistence = persistence;
             _backup = backup;
+            _config = config;
             client = new HttpXmlClient(DanBooruUrl);
 
-            numThreads = int.Parse(Environment.GetEnvironmentVariable("NUM_THREADS"));
+            numThreads = int.Parse(_config.GetItemByName("NumThreads"));
         }
 
         public void BuildIndex()
@@ -72,8 +74,8 @@ namespace LobitaDownloader
                     }
                 }
             }
-            while (tagNodes.Count != 0);
-            //while (j < 1000);
+            //while (tagNodes.Count != 0);
+            while (j < 1000);
 
             // Fetch series tags
             lastId = 0;
@@ -156,6 +158,8 @@ namespace LobitaDownloader
             _persistence.CleanSeriesTags();
             _persistence.PersistSeriesTags(seriesTags);
 
+            SwitchDatabase();
+
             watch.Stop();
 
             TimeSpan timespan = TimeSpan.FromMilliseconds(watch.ElapsedMilliseconds);
@@ -164,26 +168,22 @@ namespace LobitaDownloader
             Resources.SystemLogger.Log($"Downloaded {tagLinks.Keys.Count} tags in {timeString} using {numThreads} thread(s).");
         }
 
-        public void BackupRestoreTags()
+        public void BackupRestore()
         {
             Console.Clear();
-            Console.WriteLine("Restoring tags...");
-
-            tagLinks = _backup.GetTagIndex();
-
-            _persistence.CleanTagLinks();
-            _persistence.PersistTagLinks(tagLinks);
-        }
-
-        public void BackupRestoreSeries()
-        {
-            Console.Clear();
-            Console.WriteLine("Restoring series...");
+            Console.WriteLine("Restoring from backup...");
 
             seriesTags = _backup.GetSeriesIndex();
 
             _persistence.CleanSeriesTags();
             _persistence.PersistSeriesTags(seriesTags);
+
+            tagLinks = _backup.GetTagIndex();
+
+            _persistence.CleanTagLinks();
+            _persistence.PersistTagLinks(tagLinks);
+
+            SwitchDatabase();
         }
 
         private void GetLinksForTag(int start, int end)
@@ -344,9 +344,29 @@ namespace LobitaDownloader
             }
         }
 
+        private void SwitchDatabase()
+        {
+            string currentName = "CurrentDatabase";
+            string nextName = "NextDatabase";
+
+            string currentDatabase = _config.GetItemByName(currentName);
+            string nextDatabase = _config.GetItemByName(nextName);
+            string temp = currentDatabase;
+
+            _config.ChangeItemByName(currentName, nextDatabase);
+            _config.ChangeItemByName(nextName, temp);
+        }
+
         private void ClearBelow()
         {
-            for (int i = numThreads; i < numThreads + 10; i++)
+            int remainder = Console.WindowHeight - numThreads;
+
+            if (remainder < 0)
+            {
+                remainder = 0;
+            }
+
+            for (int i = numThreads; i < numThreads + remainder; i++)
             {
                 Console.SetCursorPosition(0, i);
                 Console.Write(new string(' ', Console.WindowWidth));

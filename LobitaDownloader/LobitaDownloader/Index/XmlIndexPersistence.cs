@@ -7,8 +7,8 @@ namespace LobitaDownloader
     public class XmlIndexPersistence : IIndexPersistence
     {
         private string _backupLocation;
-        public string TagsFileName { get; }
-        public string SeriesFileName { get; }
+        public string TagsFileName { get; set; }
+        public string SeriesFileName { get; set; }
 
         public XmlIndexPersistence(string backupLocation)
         {

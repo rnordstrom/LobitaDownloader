@@ -8,7 +8,8 @@ namespace LobitaDownloader
     public enum AutoMode
     {
         AUTO,
-        MANUAL
+        MANUAL,
+        INDETERMINATE
     }
 
     public abstract class FileData
@@ -93,13 +94,16 @@ namespace LobitaDownloader
                     case "videos":
                         Resources.VideoLogger = new Logger("videos_logs");
                         IDownloader videoDownloader =
-                            new VideoThemeDownloader(new FolderVideoManager(), new XmlConfigManager());
+                            new VideoThemeDownloader(new FolderVideoManager(), new XmlConfigManager("lobitaconfig.xml"));
                         videoDownloader.Download(Resources.VideoCmdHandles);
                         break;
                     case "index":
-                        DbIndexPersistence persistence = new DbIndexPersistence("tagdb");
-                        XmlIndexPersistence backup = new XmlIndexPersistence(Environment.GetEnvironmentVariable("backup_location"));
-                        IndexBuilder indexBuilder = new IndexBuilder(persistence, backup);
+                        XmlConfigManager config = new XmlConfigManager("indexconfig.xml");
+                        string dbName = config.GetItemByName("NextDatabase");
+                        string backupLocation = config.GetItemByName("BackupLocation");
+                        DbIndexPersistence persistence = new DbIndexPersistence(dbName);
+                        XmlIndexPersistence backup = new XmlIndexPersistence(backupLocation);
+                        IndexBuilder indexBuilder = new IndexBuilder(persistence, backup, config);
                         if (CheckConnections(persistence, backup))
                         {
                             indexBuilder.BuildIndex();
@@ -110,46 +114,19 @@ namespace LobitaDownloader
                         }
                         break;
                     case "backup":
-                        DbIndexPersistence persistence1 = new DbIndexPersistence("tagdb");
-                        XmlIndexPersistence backup1 = new XmlIndexPersistence(Environment.GetEnvironmentVariable("backup_location"));
-                        IndexBuilder backupIndex = new IndexBuilder(persistence1, backup1);
-                        if (args.Length > 1)
+                        XmlConfigManager config1 = new XmlConfigManager("indexconfig.xml");
+                        string dbName1 = config1.GetItemByName("NextDatabase");
+                        string backupLocation1 = config1.GetItemByName("BackupLocation");
+                        DbIndexPersistence persistence1 = new DbIndexPersistence(dbName1);
+                        XmlIndexPersistence backup1 = new XmlIndexPersistence(backupLocation1);
+                        IndexBuilder backupIndex = new IndexBuilder(persistence1, backup1, config1);
+                        if (CheckConnections(persistence1, backup1))
                         {
-                            switch (args[1])
-                            {
-                                case "tags":
-                                    if (CheckConnections(persistence1, backup1))
-                                    {
-                                        backupIndex.BackupRestoreTags();
-                                    }
-                                    else
-                                    {
-                                        return -1;
-                                    }
-                                    break;
-                                case "series":
-                                    if (CheckConnections(persistence1, backup1))
-                                    {
-                                        backupIndex.BackupRestoreSeries();
-                                    }
-                                    else
-                                    {
-                                        return -1;
-                                    }
-                                    break;
-                            }
+                            backupIndex.BackupRestore();
                         }
                         else
                         {
-                            if (CheckConnections(persistence1, backup1))
-                            {
-                                backupIndex.BackupRestoreTags();
-                                backupIndex.BackupRestoreSeries();
-                            }
-                            else
-                            {
-                                return -1;
-                            }
+                            return -1;
                         }
                         break;
                     default:

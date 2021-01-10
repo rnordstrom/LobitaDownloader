@@ -1,0 +1,7 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<items>
+  <NumThreads>32</NumThreads>
+  <BackupLocation>F:\Backup</BackupLocation>
+  <CurrentDatabase>tagdb1</CurrentDatabase>
+  <NextDatabase>tagdb2</NextDatabase>
+</items>

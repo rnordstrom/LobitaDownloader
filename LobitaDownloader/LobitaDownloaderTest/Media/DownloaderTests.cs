@@ -11,7 +11,7 @@ namespace LobitaDownloader.Tests
         public void TestDownload()
         {
             IPersistenceManager pm = new FolderImageManager();
-            IConfigManager cm = new XmlConfigManager();
+            IConfigManager cm = new XmlConfigManager("lobitaconfig.xml");
             TestDownloader testDL = new TestDownloader(pm, cm);
 
             testDL.Download(Resources.ImageCmdHandles);
