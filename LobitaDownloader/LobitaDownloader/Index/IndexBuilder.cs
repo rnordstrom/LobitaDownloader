@@ -74,8 +74,8 @@ namespace LobitaDownloader
                     }
                 }
             }
-            //while (tagNodes.Count != 0);
-            while (j < 1000);
+            while (tagNodes.Count != 0);
+            //while (j < 1000);
 
             // Fetch series tags
             lastId = 0;
