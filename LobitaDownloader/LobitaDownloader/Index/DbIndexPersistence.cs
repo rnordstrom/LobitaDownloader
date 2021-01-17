@@ -15,7 +15,11 @@ namespace LobitaDownloader
 
         public DbIndexPersistence(string dbName)
         {
-            connStr = $"server=localhost;user=root;database={dbName};port=3306;password={Environment.GetEnvironmentVariable("PWD")}";
+            connStr = 
+                $"server={Environment.GetEnvironmentVariable("DB_HOST")};" +
+                $"user={Environment.GetEnvironmentVariable("DB_USER")};" +
+                $"database={dbName};port=3306;" +
+                $"password={Environment.GetEnvironmentVariable("DB_PWD")}";
             conn = new MySqlConnection(connStr);
         }
 

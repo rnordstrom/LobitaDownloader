@@ -77,7 +77,7 @@ namespace LobitaDownloader
     {
         static int Main(string[] args)
         {
-            string usageString = "Usage: LobitaDownloader index [tags | series] | videos>";
+            string usageString = "Usage: LobitaDownloader index | backup | videos>";
 
             Resources.SystemLogger = new Logger("syslogs");
 
