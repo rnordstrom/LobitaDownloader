@@ -68,6 +68,9 @@ namespace LobitaDownloader
         public static Logger SystemLogger { get; set; }
         public static Logger ImageLogger { get; set; }
         public static Logger VideoLogger { get; set; }
+        public const string ProductionDirectory = "production";
+        public const string TestDirectory = "test";
+        public const string ConfigFile = "lobitaconfig.xml";
     }
 
     public delegate List<FileData> SourceQuery(string qParam);
@@ -98,7 +101,7 @@ namespace LobitaDownloader
                         videoDownloader.Download(Resources.VideoCmdHandles);
                         break;*/
                     case "index":
-                        XmlConfigManager config = new XmlConfigManager("indexconfig.xml");
+                        XmlConfigManager config = new XmlConfigManager(Resources.ProductionDirectory, Resources.ConfigFile);
                         string dbName = config.GetItemByName("NextDatabase");
                         string backupLocation = config.GetItemByName("BackupLocation");
                         DbIndexPersistence persistence = new DbIndexPersistence(dbName);
@@ -114,7 +117,7 @@ namespace LobitaDownloader
                         }
                         break;
                     case "backup":
-                        XmlConfigManager config1 = new XmlConfigManager("indexconfig.xml");
+                        XmlConfigManager config1 = new XmlConfigManager(Resources.ProductionDirectory, Resources.ConfigFile);
                         string dbName1 = config1.GetItemByName("NextDatabase");
                         string backupLocation1 = config1.GetItemByName("BackupLocation");
                         DbIndexPersistence persistence1 = new DbIndexPersistence(dbName1);

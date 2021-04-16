@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Xml;
 
 namespace LobitaDownloader
@@ -8,11 +9,11 @@ namespace LobitaDownloader
         private XmlDocument doc = new XmlDocument();
         private string _fileName;
 
-        public XmlConfigManager(string fileName)
+        public XmlConfigManager(string dirName, string fileName)
         {
             _fileName = fileName;
 
-            doc.Load(Path.Join(Resources.WorkingDirectory, fileName));
+            doc.Load(Path.Join(Environment.GetEnvironmentVariable("CONFIG_LOCATION"), dirName, fileName));
         }
 
         public AutoMode CheckAutoMode(string cmdHandle)

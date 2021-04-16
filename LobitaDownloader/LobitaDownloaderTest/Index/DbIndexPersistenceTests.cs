@@ -11,7 +11,7 @@ namespace LobitaDownloader.Tests
         private MySqlConnection conn;
         private Dictionary<string, List<string>> tagLinks = new Dictionary<string, List<string>>();
         private Dictionary<string, HashSet<string>> seriesTags = new Dictionary<string, HashSet<string>>();
-        private string dbName = "tagdb_test";
+        private string dbName;
         private string tag1 = "gawr_gura";
         private string tag2 = "ninomae_ina'nis";
         private string tag3 = "hilda_valentine_goneril";
@@ -20,6 +20,8 @@ namespace LobitaDownloader.Tests
         [TestInitialize]
         public void Setup()
         {
+            XmlConfigManager cm = new XmlConfigManager(Resources.TestDirectory, Resources.ConfigFile);
+            dbName = cm.GetItemByName("CurrentDatabase");
             
             string connStr =
                 $"server={Environment.GetEnvironmentVariable("DB_HOST")};" +
@@ -42,11 +44,39 @@ namespace LobitaDownloader.Tests
             DbIndexPersistence database = new DbIndexPersistence(dbName);
 
             database.CleanTagLinks();
+
+            Assert.IsTrue(TableIsEmpty("links"));
+            Assert.IsTrue(TableIsEmpty("tags"));
+            Assert.IsTrue(TableIsEmpty("tag_links"));
+
             database.PersistTagLinks(tagLinks);
 
             database.CleanSeries();
+
+            Assert.IsTrue(TableIsEmpty("series"));
+            Assert.IsTrue(TableIsEmpty("series_tags"));
+
             database.PersistSeriesTags(seriesTags);
 
+            List<long> countList = GetDatabaseCounts();
+
+            Assert.AreEqual(tagLinks[tag1].Count, countList[0]);
+            Assert.AreEqual(tagLinks[tag2].Count, countList[1]);
+            Assert.AreEqual(2, countList[2]);
+
+            conn.Close();
+        }
+
+        [TestMethod()]
+        public void IsConnectedTest()
+        {
+            DbIndexPersistence database = new DbIndexPersistence(dbName);
+
+            Assert.IsTrue(database.IsConnected());
+        }
+
+        private List<long> GetDatabaseCounts()
+        {
             string replacedName = tag2.Replace("'", "''");
 
             string queryLinks1 =
@@ -88,19 +118,38 @@ namespace LobitaDownloader.Tests
                 Console.WriteLine(e.Message + Environment.NewLine + e.StackTrace);
             }
 
-            Assert.AreEqual(tagLinks[tag1].Count, countList[0]);
-            Assert.AreEqual(tagLinks[tag2].Count, countList[1]);
-            Assert.AreEqual(2, countList[2]);
-
             conn.Close();
+
+            return countList;
         }
 
-        [TestMethod()]
-        public void IsConnectedTest()
+        private bool TableIsEmpty(string tableName)
         {
-            DbIndexPersistence database = new DbIndexPersistence(dbName);
+            string countQuery = $"SELECT COUNT(*) FROM {tableName}";
+            long count = 1;
 
-            Assert.IsTrue(database.IsConnected());
+            try
+            {
+                conn.Open();
+
+                MySqlCommand cmd = new MySqlCommand(countQuery, conn); ;
+                MySqlDataReader rdr = cmd.ExecuteReader();
+
+                while (rdr.Read())
+                {
+                    count = (long)rdr[0];
+                }
+
+                rdr.Close();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message + Environment.NewLine + e.StackTrace);
+            }
+
+            conn.Close();
+
+            return count == 0 ? true : false;
         }
     }
 }

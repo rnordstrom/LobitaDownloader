@@ -18,7 +18,7 @@ namespace LobitaDownloader.Tests
         [TestInitialize]
         public void Setup()
         {
-            IConfigManager configManager = new XmlConfigManager("indexconfig.xml");
+            IConfigManager configManager = new XmlConfigManager(Resources.TestDirectory, Resources.ConfigFile);
             backupLocation = configManager.GetItemByName("BackupLocation");
             persistence = new XmlIndexPersistence(backupLocation);
 
