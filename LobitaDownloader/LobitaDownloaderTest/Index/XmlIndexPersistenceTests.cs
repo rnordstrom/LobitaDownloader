@@ -7,7 +7,7 @@ namespace LobitaDownloader.Tests
     [TestClass()]
     public class XmlIndexPersistenceTests
     {
-        private string backupLocation = "F:\\Backup_Test";
+        private string backupLocation;
         private XmlIndexPersistence persistence;
         private Dictionary<string, List<string>> tagLinks = new Dictionary<string, List<string>>();
         private Dictionary<string, HashSet<string>> seriesTags = new Dictionary<string, HashSet<string>>();
@@ -18,6 +18,8 @@ namespace LobitaDownloader.Tests
         [TestInitialize]
         public void Setup()
         {
+            IConfigManager configManager = new XmlConfigManager("indexconfig.xml");
+            backupLocation = configManager.GetItemByName("BackupLocation");
             persistence = new XmlIndexPersistence(backupLocation);
 
             tagLinks.Add(tag1, new List<string>() { "1.png", "2.png", "3.jpg" });
@@ -31,7 +33,7 @@ namespace LobitaDownloader.Tests
             persistence.CleanTagLinks();
             persistence.PersistTagLinks(tagLinks);
 
-            persistence.CleanSeriesTags();
+            persistence.CleanSeries();
             persistence.PersistSeriesTags(seriesTags);
 
             Assert.IsTrue(File.Exists(persistence.TagsFileName));

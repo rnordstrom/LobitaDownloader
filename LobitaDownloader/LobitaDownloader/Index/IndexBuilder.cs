@@ -146,7 +146,7 @@ namespace LobitaDownloader
             _backup.CleanTagLinks();
             _backup.PersistTagLinks(tagLinks);
 
-            _backup.CleanSeriesTags();
+            _backup.CleanSeries();
             _backup.PersistSeriesTags(seriesTags);
 
             Console.Clear();
@@ -155,7 +155,7 @@ namespace LobitaDownloader
             _persistence.CleanTagLinks();
             _persistence.PersistTagLinks(tagLinks);
             
-            _persistence.CleanSeriesTags();
+            _persistence.CleanSeries();
             _persistence.PersistSeriesTags(seriesTags);
 
             SwitchDatabase();
@@ -173,15 +173,15 @@ namespace LobitaDownloader
             Console.Clear();
             Console.WriteLine("Restoring from backup...");
 
-            seriesTags = _backup.GetSeriesIndex();
-
-            _persistence.CleanSeriesTags();
-            _persistence.PersistSeriesTags(seriesTags);
-
             tagLinks = _backup.GetTagIndex();
 
             _persistence.CleanTagLinks();
             _persistence.PersistTagLinks(tagLinks);
+
+            seriesTags = _backup.GetSeriesIndex();
+
+            _persistence.CleanSeries();
+            _persistence.PersistSeriesTags(seriesTags);
 
             SwitchDatabase();
         }

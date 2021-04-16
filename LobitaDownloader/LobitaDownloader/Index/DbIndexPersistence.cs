@@ -11,7 +11,8 @@ namespace LobitaDownloader
     {
         private string connStr;
         private MySqlConnection conn;
-        private const int BatchInsertLimit = 10000;
+        private const int BatchQueryLimit = 100000;
+        private const int TimeOut = 3600;
 
         public DbIndexPersistence(string dbName)
         {
@@ -25,39 +26,67 @@ namespace LobitaDownloader
 
         public void CleanTagLinks()
         {
-            List<string> cmds = new List<string>();
-
-            cmds.Add("DELETE FROM tags");
-            cmds.Add("ALTER TABLE tags AUTO_INCREMENT = 1");
-            cmds.Add("ALTER TABLE links AUTO_INCREMENT = 1");
-
-            Clean(cmds);
+            Clean("tags", "id");
+            Clean("links", "id");
         }
 
-        public void CleanSeriesTags()
+        public void CleanSeries()
         {
-            List<string> cmds = new List<string>();
-
-            cmds.Add("DELETE FROM series");
-            cmds.Add("ALTER TABLE series AUTO_INCREMENT = 1");
-
-            Clean(cmds);
+            Clean("series", "id");
         }
 
-        private void Clean(List<string> cmds)
+        private void Clean(string tableName, string idColumn)
         {
             try
             {
                 conn.Open();
+                
+                int currentId = 1;
+                int deleted = 0;
+                string checkMin = $"SELECT MIN({idColumn}) FROM {tableName}";
 
-                MySqlCommand cmd;
+                MySqlCommand minCmd = new MySqlCommand(checkMin, conn);
+                MySqlDataReader rdr = minCmd.ExecuteReader();
 
-                foreach (string s in cmds)
+                while (rdr.Read())
                 {
-                    cmd = new MySqlCommand(s, conn);
-                    cmd.CommandTimeout = 3600;
-                    cmd.ExecuteNonQuery();
+                    currentId = (int)rdr[0];
                 }
+
+                rdr.Close();
+
+                string checkExists = $"SELECT {idColumn} FROM {tableName} WHERE {idColumn} = {currentId}";
+                string deleteBatch = $"DELETE FROM {tableName} LIMIT {BatchQueryLimit}";
+                string resetInc = $"ALTER TABLE {tableName} AUTO_INCREMENT = 1";
+                string output;
+
+                MySqlCommand existsCmd = new MySqlCommand(checkExists, conn);
+                MySqlCommand deleteCmd = new MySqlCommand(deleteBatch, conn);
+                rdr = existsCmd.ExecuteReader();
+
+                deleteCmd.CommandTimeout = TimeOut;
+
+
+                while (rdr.Read())
+                {
+                    rdr.Close();
+                    deleteCmd.ExecuteNonQuery();
+
+                    currentId += BatchQueryLimit;
+                    deleted += BatchQueryLimit;
+                    checkExists = $"SELECT {idColumn} FROM {tableName} WHERE {idColumn} = {currentId}";
+                    existsCmd = new MySqlCommand(checkExists, conn);
+
+                    rdr = existsCmd.ExecuteReader();
+                    output = $"Deleted {deleted} rows.";
+
+                    PrintUtils.PrintRow(output, 0, 0);
+                }
+
+                rdr.Close();
+
+                MySqlCommand resetCmd = new MySqlCommand(resetInc, conn);
+                resetCmd.ExecuteNonQuery();
             }
             catch (Exception e)
             {
@@ -69,71 +98,88 @@ namespace LobitaDownloader
 
         public void PersistTagLinks(IDictionary<string, List<string>> index)
         {
-            string replacedName;
-            string output;
-            StringBuilder insertTagLinks;
-            int id = 0;
             int i = 1;
-            int j;
+            string output;
             MySqlCommand cmd;
             MySqlDataReader rdr;
             MySqlTransaction transaction = null;
 
-            PersistNames(index.Keys.ToList(), "tags");
+            PersistColumnBatch(index.Keys.ToList(), "tags", "name");
+            PersistColumnBatch(ToUniqueSet(index.Values.ToList()), "links", "url");
+
+            Dictionary<string, int> tagDict = new Dictionary<string, int>();
+            Dictionary<string, int> linkDict = new Dictionary<string, int>();
+            string queryTags = "SELECT name, id FROM tags";
+            string queryLinks = "SELECT url, id FROM links";
+
+            output = $"Preparing ID dictionaries.";
+
+            PrintUtils.PrintRow(output, 0, 0);
 
             try
             {
                 conn.Open();
 
+                cmd = new MySqlCommand(queryTags, conn);
+                rdr = cmd.ExecuteReader();
+
+                while (rdr.Read())
+                {
+                    tagDict.Add((string)rdr[0], (int)rdr[1]);
+                }
+
+                rdr.Close();
+
+                cmd = new MySqlCommand(queryLinks, conn);
+                rdr = cmd.ExecuteReader();
+
+                while (rdr.Read())
+                {
+                    linkDict.Add((string)rdr[0], (int)rdr[1]);
+                }
+
+                rdr.Close();
+
+                StringBuilder insertTagLinks = new StringBuilder("INSERT INTO tag_links(tag_id, link_id) VALUES");
+                int j = 0;
+                int k = 0;
+
+                transaction = conn.BeginTransaction();
+
                 foreach (string tagName in index.Keys)
                 {
-                    transaction = conn.BeginTransaction();
-
+                    int tagId = tagDict[tagName];
                     output = $"Writing tag ({i++} / {index.Keys.Count}).";
 
                     PrintUtils.PrintRow(output, 0, 0);
 
-                    replacedName = tagName.Replace("'", "''");
-
-                    string queryId = $"SELECT id FROM tags WHERE name='{replacedName}'";
-                    cmd = new MySqlCommand(queryId, conn);
-                    rdr = cmd.ExecuteReader();
-
-                    while (rdr.Read())
-                    {
-                        id = (int)rdr[0];
-                    }
-
-                    rdr.Close();
-
-                    insertTagLinks = new StringBuilder("INSERT INTO links(url, tag_id) VALUES");
-                    j = 0;
-
                     foreach (string link in index[tagName])
                     {
-                        insertTagLinks.Append($"('{link}', {id})");
+                        int linkId = linkDict[link];
 
-                        if (j < index[tagName].Count - 1)
-                        {
-                            insertTagLinks.Append(",");
-                        }
-                        else
-                        {
-                            insertTagLinks.Append(";");
-                        }
+                        insertTagLinks.Append($"('{tagId}', {linkId}),");
 
                         j++;
                     }
 
-                    if (j > 0)
+                    if (j >= BatchQueryLimit || k == index.Keys.Count - 1)
                     {
+                        insertTagLinks.Remove(insertTagLinks.Length - 1, 1);
+                        insertTagLinks.Append(";");
+
                         cmd = new MySqlCommand(insertTagLinks.ToString(), conn);
 
-                        cmd.CommandTimeout = 3600;
+                        cmd.CommandTimeout = TimeOut;
                         cmd.ExecuteNonQuery();
+                        transaction.Commit();
+
+                        transaction = conn.BeginTransaction();
+                        insertTagLinks = new StringBuilder("INSERT INTO tag_links(tag_id, link_id) VALUES");
+
+                        j = 0;
                     }
 
-                    transaction.Commit();
+                    k++;
                 }
             }
             catch (Exception e)
@@ -151,104 +197,87 @@ namespace LobitaDownloader
 
         public void PersistSeriesTags(IDictionary<string, HashSet<string>> index)
         {
-            string replacedName;
-            string output;
-            string querySeriesId;
-            string queryTagIds;
-            StringBuilder insertSeriesTags;
-            StringBuilder allTags;
-            int seriesId = 0;
-            int tagId;
             int i = 1;
-            int j = 0; ;
+            string output;
             MySqlCommand cmd;
             MySqlDataReader rdr;
             MySqlTransaction transaction = null;
 
-            PersistNames(index.Keys.ToList(), "series");
+            PersistColumnBatch(index.Keys.ToList(), "series", "name");
+
+            Dictionary<string, int> seriesDict = new Dictionary<string, int>();
+            Dictionary<string, int> tagDict = new Dictionary<string, int>();
+            string querySeries = "SELECT name, id FROM series";
+            string queryTags = "SELECT name, id FROM tags";
+
+            output = $"Preparing ID dictionaries.";
+
+            PrintUtils.PrintRow(output, 0, 0);
 
             try
             {
                 conn.Open();
 
+                cmd = new MySqlCommand(queryTags, conn);
+                rdr = cmd.ExecuteReader();
+
+                while (rdr.Read())
+                {
+                    tagDict.Add((string)rdr[0], (int)rdr[1]);
+                }
+
+                rdr.Close();
+
+                cmd = new MySqlCommand(querySeries, conn);
+                rdr = cmd.ExecuteReader();
+
+                while (rdr.Read())
+                {
+                    seriesDict.Add((string)rdr[0], (int)rdr[1]);
+                }
+
+                rdr.Close();
+
+                StringBuilder insertSeriesTags = new StringBuilder("INSERT INTO series_tags(tag_id, series_id) VALUES");
+                int j = 0;
+                int k = 0;
+
+                transaction = conn.BeginTransaction();
+
                 foreach (string seriesName in index.Keys)
                 {
-                    transaction = conn.BeginTransaction();
+                    int seriesId = seriesDict[seriesName];
                     output = $"Writing series ({i++} / {index.Keys.Count}).";
 
                     PrintUtils.PrintRow(output, 0, 0);
 
-                    replacedName = seriesName.Replace("'", "''");
-
-                    querySeriesId = $"SELECT id FROM series WHERE name='{replacedName}'";
-                    cmd = new MySqlCommand(querySeriesId, conn);
-                    rdr = cmd.ExecuteReader();
-                    
-                    while (rdr.Read())
+                    foreach (string tagName in index[seriesName])
                     {
-                        seriesId = (int)rdr[0];
+                        int tagId = tagDict[tagName];
+
+                        insertSeriesTags.Append($"({tagId}, {seriesId}),");
+
+                        j++;
                     }
 
-                    rdr.Close();
-
-                    if (index[seriesName].Count > 0)
+                    if (j >= BatchQueryLimit || k == index.Keys.Count - 1)
                     {
-                        allTags = new StringBuilder();
-
-                        foreach (string tagName in index[seriesName])
-                        {
-                            replacedName = tagName.Replace("'", "''");
-
-                            if (j < index[seriesName].Count - 1)
-                            {
-                                allTags.Append($"name = '{replacedName}' OR ");
-                            }
-                            else
-                            {
-                                allTags.Append($"name = '{replacedName}'");
-                            }
-
-                            j++;
-                        }
-
-                        queryTagIds = $"SELECT id FROM tags WHERE({allTags})";
-                        cmd = new MySqlCommand(queryTagIds, conn);
-
-                        cmd.CommandTimeout = 3600;
-
-                        rdr = cmd.ExecuteReader();
-                        insertSeriesTags = new StringBuilder("INSERT INTO series_tags(tag_id, series_id) VALUES");
-                        j = 0;
-
-
-                        while (rdr.Read())
-                        {
-                            tagId = (int)rdr[0];
-
-                            insertSeriesTags.Append($"({tagId}, {seriesId})");
-
-                            if (j < index[seriesName].Count - 1)
-                            {
-                                insertSeriesTags.Append(",");
-                            }
-                            else
-                            {
-                                insertSeriesTags.Append(";");
-                            }
-
-                            j++;
-                        }
-
-                        rdr.Close();
+                        insertSeriesTags.Remove(insertSeriesTags.Length - 1, 1);
+                        insertSeriesTags.Append(";");
 
                         cmd = new MySqlCommand(insertSeriesTags.ToString(), conn);
 
+                        cmd.CommandTimeout = TimeOut;
                         cmd.ExecuteNonQuery();
+                        transaction.Commit();
+
+                        transaction = conn.BeginTransaction();
+                        insertSeriesTags = new StringBuilder("INSERT INTO series_tags(tag_id, series_id) VALUES");
+
+                        j = 0;
                     }
 
-                    transaction.Commit();
-
-                    j = 0;
+                    k++;
                 }
             }
             catch (Exception e)
@@ -264,39 +293,44 @@ namespace LobitaDownloader
             conn.Close();
         }
 
-        private void PersistNames(ICollection<string> names, string tableName)
+        private void PersistColumnBatch(ICollection<string> values, string tableName, string columnName)
         {
             string replacedName;
-            MySqlTransaction transaction = null;
+            string output;
             MySqlCommand cmd;
-            StringBuilder insertNames = new StringBuilder($"INSERT INTO {tableName}(name) VALUES");
+            StringBuilder insertValues = new StringBuilder($"INSERT INTO {tableName}({columnName}) VALUES");
+            int i = 1;
             int j = 0;
 
             try
             {
                 conn.Open();
-                transaction = conn.BeginTransaction();
+                MySqlTransaction transaction = conn.BeginTransaction();
 
-                foreach (string s in names)
+                foreach (string s in values)
                 {
+                    output = $"Writing value to column {tableName}.{columnName} ({i++} / {values.Count}).";
+
+                    PrintUtils.PrintRow(output, 0, 0);
+
                     replacedName = s.Replace("'", "''");
-                    insertNames.Append($"('{replacedName}')");
+                    insertValues.Append($"('{replacedName}')");
 
-                    if (names.Count == 1 || (j > 0 && (j % BatchInsertLimit == 0 || j == names.Count - 1)))
+                    if (values.Count == 1 || (j > 0 && (j % BatchQueryLimit == 0 || j == values.Count - 1)))
                     {
-                        insertNames.Append(";");
+                        insertValues.Append(";");
 
-                        cmd = new MySqlCommand(insertNames.ToString(), conn);
+                        cmd = new MySqlCommand(insertValues.ToString(), conn);
 
                         cmd.ExecuteNonQuery();
                         transaction.Commit();
 
                         transaction = conn.BeginTransaction();
-                        insertNames = new StringBuilder($"INSERT INTO {tableName}(name) VALUES");
+                        insertValues = new StringBuilder($"INSERT INTO {tableName}({columnName}) VALUES");
                     }
                     else
                     {
-                        insertNames.Append(",");
+                        insertValues.Append(",");
                     }
 
                     j++;
@@ -308,6 +342,21 @@ namespace LobitaDownloader
             }
 
             conn.Close();
+        }
+
+        private HashSet<string> ToUniqueSet(ICollection<List<string>> values)
+        {
+            HashSet<string> uniqueSet = new HashSet<string>();
+
+            foreach(var v in values)
+            {
+                foreach(string s in v)
+                {
+                    uniqueSet.Add(s);
+                }
+            }
+
+            return uniqueSet;
         }
 
         public IDictionary<string, List<string>> GetTagIndex()

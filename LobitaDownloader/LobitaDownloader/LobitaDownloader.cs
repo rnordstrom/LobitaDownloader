@@ -77,7 +77,7 @@ namespace LobitaDownloader
     {
         static int Main(string[] args)
         {
-            string usageString = "Usage: LobitaDownloader index | backup | videos>";
+            string usageString = "Usage: LobitaDownloader index | backup>";
 
             Resources.SystemLogger = new Logger("syslogs");
 
@@ -90,13 +90,13 @@ namespace LobitaDownloader
                         IDownloader imageDownloader =
                             new ImageDownloader(new FolderImageManager(), new XmlConfigManager());
                         imageDownloader.Download(Resources.ImageCmdHandles);
-                        break;*/
+                        break;
                     case "videos":
                         Resources.VideoLogger = new Logger("videos_logs");
                         IDownloader videoDownloader =
                             new VideoThemeDownloader(new FolderVideoManager(), new XmlConfigManager("lobitaconfig.xml"));
                         videoDownloader.Download(Resources.VideoCmdHandles);
-                        break;
+                        break;*/
                     case "index":
                         XmlConfigManager config = new XmlConfigManager("indexconfig.xml");
                         string dbName = config.GetItemByName("NextDatabase");

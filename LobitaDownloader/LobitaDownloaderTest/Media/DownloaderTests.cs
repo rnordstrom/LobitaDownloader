@@ -5,6 +5,7 @@ using System.Drawing;
 namespace LobitaDownloader.Tests
 {
     [TestClass]
+    [Ignore]
     public class DownloaderTests
     {
         [TestMethod]

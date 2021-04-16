@@ -44,19 +44,19 @@ namespace LobitaDownloader.Tests
             database.CleanTagLinks();
             database.PersistTagLinks(tagLinks);
 
-            database.CleanSeriesTags();
+            database.CleanSeries();
             database.PersistSeriesTags(seriesTags);
 
             string replacedName = tag2.Replace("'", "''");
 
             string queryLinks1 =
                 $"SELECT COUNT(l.id) " +
-                $"FROM tags as t, links as l " +
-                $"WHERE t.id = l.tag_id AND t.name = '{tag1}'";
+                $"FROM tags as t, tag_links AS tl, links as l " +
+                $"WHERE t.id = tl.tag_id AND l.id = tl.link_id AND t.name = '{tag1}'";
             string queryLinks2 =
                 $"SELECT COUNT(l.id) " +
-                $"FROM tags as t, links as l " +
-                $"WHERE t.id = l.tag_id AND t.name = '{replacedName}'";
+                $"FROM tags as t, tag_links AS tl, links as l " +
+                $"WHERE t.id = tl.tag_id AND l.id = tl.link_id AND t.name = '{replacedName}'";
             string querySeries = $"SELECT COUNT(t.id) " +
                 $"FROM tags AS t, series_tags AS st, series AS s " +
                 $"WHERE t.id = st.tag_id AND s.id = st.series_id AND s.name = '{series}'";

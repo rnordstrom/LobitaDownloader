@@ -6,6 +6,7 @@ namespace LobitaDownloader.Tests
     public class ConfigTests
     {
         [TestMethod]
+        [Ignore]
         public void TestCheckAutoMode()
         {
             IConfigManager cm = new XmlConfigManager("lobitaconfig.xml");

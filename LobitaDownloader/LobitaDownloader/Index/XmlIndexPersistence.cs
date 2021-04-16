@@ -27,7 +27,7 @@ namespace LobitaDownloader
             }
         }
 
-        public void CleanSeriesTags()
+        public void CleanSeries()
         {
             FileInfo seriesFileInfo = new FileInfo(SeriesFileName);
 
