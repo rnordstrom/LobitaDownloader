@@ -32,7 +32,7 @@ namespace LobitaDownloader.Tests
             conn = new MySqlConnection(connStr);
 
             tagLinks.Add(tag1, new List<string>() { "1.png", "2.png", "3.jpg" });
-            tagLinks.Add(tag2, new List<string>() { "4.png", "5.png" });
+            tagLinks.Add(tag2, new List<string>() { "3.jpg", "4.png" });
             tagLinks.Add(tag3, new List<string>() { "6.png" });
 
             seriesTags.Add(series, new HashSet<string>() { tag1, tag2 });
