@@ -5,13 +5,14 @@ using System.Drawing;
 namespace LobitaDownloader.Tests
 {
     [TestClass]
+    [Ignore]
     public class DownloaderTests
     {
         [TestMethod]
         public void TestDownload()
         {
             IPersistenceManager pm = new FolderImageManager();
-            IConfigManager cm = new XmlConfigManager("lobitaconfig.xml");
+            IConfigManager cm = new XmlConfigManager(Resources.TestDirectory, Resources.ConfigFile);
             TestDownloader testDL = new TestDownloader(pm, cm);
 
             testDL.Download(Resources.ImageCmdHandles);

@@ -68,6 +68,9 @@ namespace LobitaDownloader
         public static Logger SystemLogger { get; set; }
         public static Logger ImageLogger { get; set; }
         public static Logger VideoLogger { get; set; }
+        public const string ProductionDirectory = "production";
+        public const string TestDirectory = "test";
+        public const string ConfigFile = "lobitaconfig.xml";
     }
 
     public delegate List<FileData> SourceQuery(string qParam);
@@ -77,33 +80,20 @@ namespace LobitaDownloader
     {
         static int Main(string[] args)
         {
-            string usageString = "Usage: LobitaDownloader index | backup | videos>";
+            string usageString = "Usage: LobitaDownloader index | backup | clean>";
 
             Resources.SystemLogger = new Logger("syslogs");
+
+            XmlConfigManager config = new XmlConfigManager(Resources.ProductionDirectory, Resources.ConfigFile);
+            DbIndexPersistence persistence = new DbIndexPersistence(config);
+            XmlIndexPersistence backup = new XmlIndexPersistence(config);
+            IndexBuilder indexBuilder = new IndexBuilder(persistence, backup, config);
 
             try
             {
                 switch (args[0])
                 {
-                    /*case "images":
-                        Resources.ImageLogger = new Logger("images_logs");
-                        IDownloader imageDownloader =
-                            new ImageDownloader(new FolderImageManager(), new XmlConfigManager());
-                        imageDownloader.Download(Resources.ImageCmdHandles);
-                        break;*/
-                    case "videos":
-                        Resources.VideoLogger = new Logger("videos_logs");
-                        IDownloader videoDownloader =
-                            new VideoThemeDownloader(new FolderVideoManager(), new XmlConfigManager("lobitaconfig.xml"));
-                        videoDownloader.Download(Resources.VideoCmdHandles);
-                        break;
                     case "index":
-                        XmlConfigManager config = new XmlConfigManager("indexconfig.xml");
-                        string dbName = config.GetItemByName("NextDatabase");
-                        string backupLocation = config.GetItemByName("BackupLocation");
-                        DbIndexPersistence persistence = new DbIndexPersistence(dbName);
-                        XmlIndexPersistence backup = new XmlIndexPersistence(backupLocation);
-                        IndexBuilder indexBuilder = new IndexBuilder(persistence, backup, config);
                         if (CheckConnections(persistence, backup))
                         {
                             indexBuilder.BuildIndex();
@@ -114,15 +104,19 @@ namespace LobitaDownloader
                         }
                         break;
                     case "backup":
-                        XmlConfigManager config1 = new XmlConfigManager("indexconfig.xml");
-                        string dbName1 = config1.GetItemByName("NextDatabase");
-                        string backupLocation1 = config1.GetItemByName("BackupLocation");
-                        DbIndexPersistence persistence1 = new DbIndexPersistence(dbName1);
-                        XmlIndexPersistence backup1 = new XmlIndexPersistence(backupLocation1);
-                        IndexBuilder backupIndex = new IndexBuilder(persistence1, backup1, config1);
-                        if (CheckConnections(persistence1, backup1))
+                        if (CheckConnections(persistence, backup))
                         {
-                            backupIndex.BackupRestore();
+                            indexBuilder.BackupRestore();
+                        }
+                        else
+                        {
+                            return -1;
+                        }
+                        break;
+                    case "clean":
+                        if (CheckConnections(persistence, backup))
+                        {
+                            indexBuilder.CleanUp();
                         }
                         else
                         {

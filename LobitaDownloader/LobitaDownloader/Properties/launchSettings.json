@@ -1,8 +1,7 @@
 {
   "profiles": {
     "LobitaDownloader": {
-      "commandName": "Project",
-      "commandLineArgs": "index"
+      "commandName": "Project"
     }
   }
 }

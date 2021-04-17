@@ -10,11 +10,11 @@ namespace LobitaDownloader
         public string TagsFileName { get; set; }
         public string SeriesFileName { get; set; }
 
-        public XmlIndexPersistence(string backupLocation)
+        public XmlIndexPersistence(IConfigManager config)
         {
-            _backupLocation = backupLocation;
-            TagsFileName = Path.Join(backupLocation, "tags.xml");
-            SeriesFileName = Path.Join(backupLocation, "series.xml");
+            _backupLocation = config.GetItemByName("BackupLocation");
+            TagsFileName = Path.Join(_backupLocation, "tags.xml");
+            SeriesFileName = Path.Join(_backupLocation, "series.xml");
         }
         
         public void CleanTagLinks()
@@ -27,7 +27,7 @@ namespace LobitaDownloader
             }
         }
 
-        public void CleanSeriesTags()
+        public void CleanSeries()
         {
             FileInfo seriesFileInfo = new FileInfo(SeriesFileName);
 

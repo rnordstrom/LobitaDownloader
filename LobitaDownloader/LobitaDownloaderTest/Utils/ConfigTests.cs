@@ -6,9 +6,10 @@ namespace LobitaDownloader.Tests
     public class ConfigTests
     {
         [TestMethod]
+        [Ignore]
         public void TestCheckAutoMode()
         {
-            IConfigManager cm = new XmlConfigManager("lobitaconfig.xml");
+            IConfigManager cm = new XmlConfigManager(Resources.TestDirectory, Resources.ConfigFile);
 
             foreach (string cmd in Resources.ImageCmdHandles)
             {
@@ -19,7 +20,7 @@ namespace LobitaDownloader.Tests
         [TestMethod]
         public void TestGetSetByName()
         {
-            IConfigManager cm = new XmlConfigManager("indexconfig.xml");
+            IConfigManager cm = new XmlConfigManager(Resources.TestDirectory, Resources.ConfigFile);
             string elementName = "NumThreads";
 
             int numThreads = int.Parse(cm.GetItemByName(elementName));
