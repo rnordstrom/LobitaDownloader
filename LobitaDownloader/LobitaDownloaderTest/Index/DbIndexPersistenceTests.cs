@@ -11,7 +11,7 @@ namespace LobitaDownloader.Tests
         private MySqlConnection conn;
         private Dictionary<string, List<string>> tagLinks = new Dictionary<string, List<string>>();
         private Dictionary<string, HashSet<string>> seriesTags = new Dictionary<string, HashSet<string>>();
-        private string dbName;
+        XmlConfigManager cm;
         private string tag1 = "gawr_gura";
         private string tag2 = "ninomae_ina'nis";
         private string tag3 = "hilda_valentine_goneril";
@@ -20,8 +20,8 @@ namespace LobitaDownloader.Tests
         [TestInitialize]
         public void Setup()
         {
-            XmlConfigManager cm = new XmlConfigManager(Resources.TestDirectory, Resources.ConfigFile);
-            dbName = cm.GetItemByName("CurrentDatabase");
+            cm = new XmlConfigManager(Resources.TestDirectory, Resources.ConfigFile);
+            string dbName = cm.GetItemByName("NextDatabase");
             
             string connStr =
                 $"server={Environment.GetEnvironmentVariable("DB_HOST")};" +
@@ -41,7 +41,7 @@ namespace LobitaDownloader.Tests
         [TestMethod()]
         public void DatabaseQueryTest()
         {
-            DbIndexPersistence database = new DbIndexPersistence(dbName);
+            DbIndexPersistence database = new DbIndexPersistence(cm);
 
             database.CleanTagLinks();
 
@@ -70,7 +70,7 @@ namespace LobitaDownloader.Tests
         [TestMethod()]
         public void IsConnectedTest()
         {
-            DbIndexPersistence database = new DbIndexPersistence(dbName);
+            DbIndexPersistence database = new DbIndexPersistence(cm);
 
             Assert.IsTrue(database.IsConnected());
         }

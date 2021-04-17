@@ -186,6 +186,15 @@ namespace LobitaDownloader
             SwitchDatabase();
         }
 
+        public void CleanUp()
+        {
+            Console.Clear();
+            Console.WriteLine("Cleaning database...");
+
+            _persistence.CleanTagLinks();
+            _persistence.CleanSeries();
+        }
+
         private void GetLinksForTag(int start, int end)
         {
             int lastId = 0;

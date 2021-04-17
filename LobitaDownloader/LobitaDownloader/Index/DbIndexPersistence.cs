@@ -11,17 +11,22 @@ namespace LobitaDownloader
     {
         private string connStr;
         private MySqlConnection conn;
-        private const int BatchQueryLimit = 100000;
-        private const int TimeOut = 3600;
+        private int batchQueryLimit;
+        private int timeOut;
 
-        public DbIndexPersistence(string dbName)
+        public DbIndexPersistence(IConfigManager config)
         {
+            string dbName = config.GetItemByName("NextDatabase");
+
             connStr = 
                 $"server={Environment.GetEnvironmentVariable("DB_HOST")};" +
                 $"user={Environment.GetEnvironmentVariable("DB_USER")};" +
                 $"database={dbName};port=3306;" +
                 $"password={Environment.GetEnvironmentVariable("DB_PWD")}";
             conn = new MySqlConnection(connStr);
+
+            batchQueryLimit = int.Parse(config.GetItemByName("BatchQueryLimit"));
+            timeOut = int.Parse(config.GetItemByName("TimeOut"));
         }
 
         public void CleanTagLinks()
@@ -56,7 +61,7 @@ namespace LobitaDownloader
                 rdr.Close();
 
                 string checkExists = $"SELECT {idColumn} FROM {tableName} WHERE {idColumn} = {currentId}";
-                string deleteBatch = $"DELETE FROM {tableName} LIMIT {BatchQueryLimit}";
+                string deleteBatch = $"DELETE FROM {tableName} LIMIT {batchQueryLimit}";
                 string resetInc = $"ALTER TABLE {tableName} AUTO_INCREMENT = 1";
                 string output;
 
@@ -64,16 +69,15 @@ namespace LobitaDownloader
                 MySqlCommand deleteCmd = new MySqlCommand(deleteBatch, conn);
                 rdr = existsCmd.ExecuteReader();
 
-                deleteCmd.CommandTimeout = TimeOut;
-
+                deleteCmd.CommandTimeout = timeOut;
 
                 while (rdr.Read())
                 {
                     rdr.Close();
                     deleteCmd.ExecuteNonQuery();
 
-                    currentId += BatchQueryLimit;
-                    deleted += BatchQueryLimit;
+                    currentId += batchQueryLimit;
+                    deleted += batchQueryLimit;
                     checkExists = $"SELECT {idColumn} FROM {tableName} WHERE {idColumn} = {currentId}";
                     existsCmd = new MySqlCommand(checkExists, conn);
 
@@ -162,14 +166,14 @@ namespace LobitaDownloader
                         j++;
                     }
 
-                    if (j >= BatchQueryLimit || k == index.Keys.Count - 1)
+                    if (j >= batchQueryLimit || k == index.Keys.Count - 1)
                     {
                         insertTagLinks.Remove(insertTagLinks.Length - 1, 1);
                         insertTagLinks.Append(";");
 
                         cmd = new MySqlCommand(insertTagLinks.ToString(), conn);
 
-                        cmd.CommandTimeout = TimeOut;
+                        cmd.CommandTimeout = timeOut;
                         cmd.ExecuteNonQuery();
                         transaction.Commit();
 
@@ -260,14 +264,14 @@ namespace LobitaDownloader
                         j++;
                     }
 
-                    if (j >= BatchQueryLimit || k == index.Keys.Count - 1)
+                    if (j >= batchQueryLimit || k == index.Keys.Count - 1)
                     {
                         insertSeriesTags.Remove(insertSeriesTags.Length - 1, 1);
                         insertSeriesTags.Append(";");
 
                         cmd = new MySqlCommand(insertSeriesTags.ToString(), conn);
 
-                        cmd.CommandTimeout = TimeOut;
+                        cmd.CommandTimeout = timeOut;
                         cmd.ExecuteNonQuery();
                         transaction.Commit();
 
@@ -316,7 +320,7 @@ namespace LobitaDownloader
                     replacedName = s.Replace("'", "''");
                     insertValues.Append($"('{replacedName}')");
 
-                    if (values.Count == 1 || (j > 0 && (j % BatchQueryLimit == 0 || j == values.Count - 1)))
+                    if (values.Count == 1 || (j > 0 && (j % batchQueryLimit == 0 || j == values.Count - 1)))
                     {
                         insertValues.Append(";");
 
