@@ -53,7 +53,7 @@ namespace LobitaDownloader
                 MySqlCommand minCmd = new MySqlCommand(checkMin, conn);
                 MySqlDataReader rdr = minCmd.ExecuteReader();
 
-                while (rdr.Read())
+                while (rdr.Read() && rdr[0] != DBNull.Value)
                 {
                     currentId = (int)rdr[0];
                 }
@@ -91,6 +91,10 @@ namespace LobitaDownloader
 
                 MySqlCommand resetCmd = new MySqlCommand(resetInc, conn);
                 resetCmd.ExecuteNonQuery();
+
+                output = $"Database cleaned.";
+
+                PrintUtils.PrintRow(output, 0, 0);
             }
             catch (Exception e)
             {
