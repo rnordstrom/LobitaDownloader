@@ -11,9 +11,9 @@ namespace LobitaDownloader
 
         public XmlConfigManager(string dirName, string fileName)
         {
-            _fileName = fileName;
+            _fileName = Path.Join(Environment.GetEnvironmentVariable("CONFIG_LOCATION"), dirName, fileName);
 
-            doc.Load(Path.Join(Environment.GetEnvironmentVariable("CONFIG_LOCATION"), dirName, fileName));
+            doc.Load(_fileName);
         }
 
         public AutoMode CheckAutoMode(string cmdHandle)
