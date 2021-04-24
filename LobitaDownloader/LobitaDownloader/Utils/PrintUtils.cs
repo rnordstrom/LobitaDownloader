@@ -2,7 +2,7 @@
 
 namespace LobitaDownloader
 {
-    static class PrintUtils
+    public static class PrintUtils
     {
         public static void PrintRow(string text, int row, int col)
         {
@@ -22,6 +22,16 @@ namespace LobitaDownloader
             {
                 Console.WriteLine(e.Message + Environment.NewLine + e.StackTrace);
             }
+        }
+
+        public static void Report(Exception e)
+        {
+            if (Resources.SystemLogger != null)
+            {
+                Resources.SystemLogger.Log(e.Message + Environment.NewLine + e.StackTrace);
+            }
+
+            Console.WriteLine(e.Message + Environment.NewLine + e.StackTrace);
         }
     }
 }

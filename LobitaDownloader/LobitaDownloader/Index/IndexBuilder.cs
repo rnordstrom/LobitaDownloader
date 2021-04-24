@@ -158,6 +158,9 @@ namespace LobitaDownloader
             _persistence.CleanSeries();
             _persistence.PersistSeriesTags(seriesTags);
 
+            _persistence.CountTagLinks();
+            _persistence.CountSeriesLinks();
+
             SwitchDatabase();
 
             watch.Stop();
@@ -183,16 +186,26 @@ namespace LobitaDownloader
             _persistence.CleanSeries();
             _persistence.PersistSeriesTags(seriesTags);
 
+            _persistence.CountTagLinks();
+            _persistence.CountSeriesLinks();
+
             SwitchDatabase();
         }
 
         public void CleanUp()
         {
             Console.Clear();
-            Console.WriteLine("Cleaning database...");
 
             _persistence.CleanTagLinks();
             _persistence.CleanSeries();
+        }
+
+        public void Count()
+        {
+            Console.Clear();
+
+            _persistence.CountTagLinks();
+            _persistence.CountSeriesLinks();
         }
 
         private void GetLinksForTag(int start, int end)
