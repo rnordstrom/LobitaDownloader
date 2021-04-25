@@ -8,6 +8,8 @@ namespace LobitaDownloader
         public void PersistSeriesTags(IDictionary<string, HashSet<string>> index);
         public void CleanTagLinks();
         public void CleanSeries();
+        public void CountTagLinks();
+        public void CountSeriesLinks();
         public IDictionary<string, List<string>> GetTagIndex();
         public IDictionary<string, HashSet<string>> GetSeriesIndex();
         public bool IsConnected();

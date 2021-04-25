@@ -12,6 +12,7 @@ namespace LobitaDownloader.Tests
         private Dictionary<string, List<string>> tagLinks = new Dictionary<string, List<string>>();
         private Dictionary<string, HashSet<string>> seriesTags = new Dictionary<string, HashSet<string>>();
         XmlConfigManager cm;
+        private DbIndexPersistence database;
         private string tag1 = "gawr_gura";
         private string tag2 = "ninomae_ina'nis";
         private string tag3 = "hilda_valentine_goneril";
@@ -21,6 +22,7 @@ namespace LobitaDownloader.Tests
         public void Setup()
         {
             cm = new XmlConfigManager(Resources.TestDirectory, Resources.ConfigFile);
+            database = new DbIndexPersistence(cm);
             string dbName = cm.GetItemByName("NextDatabase");
             
             string connStr =
@@ -41,8 +43,6 @@ namespace LobitaDownloader.Tests
         [TestMethod()]
         public void DatabaseQueryTest()
         {
-            DbIndexPersistence database = new DbIndexPersistence(cm);
-
             database.CleanTagLinks();
 
             Assert.IsTrue(TableIsEmpty("links"));
@@ -121,6 +121,70 @@ namespace LobitaDownloader.Tests
             conn.Close();
 
             return countList;
+        }
+
+        [TestMethod]
+        public void TestCountPosts()
+        {
+            database.CountTagLinks();
+            database.CountSeriesLinks();
+
+            string getTagLinksCount1 = $"SELECT post_count FROM tags WHERE name = '{tag1}'";
+            string getTagLinksCount2 = $"SELECT post_count FROM tags WHERE name = '{tag2.Replace("'", "''")}'";
+            string getTagLinksCount3 = $"SELECT post_count FROM tags WHERE name = '{tag3}'";
+            string getSeriesLinksCount = $"SELECT post_count FROM series WHERE name = '{series}'";
+
+            try
+            {
+                conn.Open();
+
+                MySqlCommand cmd = new MySqlCommand(getTagLinksCount1, conn);
+                MySqlDataReader rdr = cmd.ExecuteReader();
+
+                while (rdr.Read())
+                {
+                    Assert.AreEqual(tagLinks[tag1].Count, (int)rdr[0]);
+                }
+
+                rdr.Close();
+
+                cmd = new MySqlCommand(getTagLinksCount2, conn);
+                rdr = cmd.ExecuteReader();
+
+                while (rdr.Read())
+                {
+                    Assert.AreEqual(tagLinks[tag2].Count, (int)rdr[0]);
+                }
+
+                rdr.Close();
+
+                cmd = new MySqlCommand(getTagLinksCount3, conn);
+                rdr = cmd.ExecuteReader();
+
+                while (rdr.Read())
+                {
+                    Assert.AreEqual(tagLinks[tag3].Count, (int)rdr[0]);
+                }
+
+                rdr.Close();
+
+                cmd = new MySqlCommand(getSeriesLinksCount, conn);
+                rdr = cmd.ExecuteReader();
+
+                while (rdr.Read())
+                {
+                    Assert.AreEqual(tagLinks[tag1].Count + tagLinks[tag2].Count, (int)rdr[0]);
+                }
+
+                rdr.Close();
+            }
+            catch (Exception e)
+            {
+                PrintUtils.Report(e);
+                Assert.IsTrue(false);
+            }
+
+            conn.Close();
         }
 
         private bool TableIsEmpty(string tableName)

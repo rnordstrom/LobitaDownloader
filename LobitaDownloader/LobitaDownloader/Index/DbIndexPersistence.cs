@@ -11,8 +11,8 @@ namespace LobitaDownloader
     {
         private string connStr;
         private MySqlConnection conn;
-        private int batchQueryLimit;
-        private int timeOut;
+        private readonly int BatchQueryLimit;
+        private readonly int TimeOut;
 
         public DbIndexPersistence(IConfigManager config)
         {
@@ -25,8 +25,8 @@ namespace LobitaDownloader
                 $"password={Environment.GetEnvironmentVariable("DB_PWD")}";
             conn = new MySqlConnection(connStr);
 
-            batchQueryLimit = int.Parse(config.GetItemByName("BatchQueryLimit"));
-            timeOut = int.Parse(config.GetItemByName("TimeOut"));
+            BatchQueryLimit = int.Parse(config.GetItemByName("BatchQueryLimit"));
+            TimeOut = int.Parse(config.GetItemByName("TimeOut"));
         }
 
         public void CleanTagLinks()
@@ -44,6 +44,8 @@ namespace LobitaDownloader
         {
             try
             {
+                Console.WriteLine("Cleaning database...");
+
                 conn.Open();
                 
                 int currentId = 1;
@@ -61,7 +63,7 @@ namespace LobitaDownloader
                 rdr.Close();
 
                 string checkExists = $"SELECT {idColumn} FROM {tableName} WHERE {idColumn} = {currentId}";
-                string deleteBatch = $"DELETE FROM {tableName} LIMIT {batchQueryLimit}";
+                string deleteBatch = $"DELETE FROM {tableName} LIMIT {BatchQueryLimit}";
                 string resetInc = $"ALTER TABLE {tableName} AUTO_INCREMENT = 1";
                 string output;
 
@@ -69,15 +71,15 @@ namespace LobitaDownloader
                 MySqlCommand deleteCmd = new MySqlCommand(deleteBatch, conn);
                 rdr = existsCmd.ExecuteReader();
 
-                deleteCmd.CommandTimeout = timeOut;
+                deleteCmd.CommandTimeout = TimeOut;
 
                 while (rdr.Read())
                 {
                     rdr.Close();
                     deleteCmd.ExecuteNonQuery();
 
-                    currentId += batchQueryLimit;
-                    deleted += batchQueryLimit;
+                    currentId += BatchQueryLimit;
+                    deleted += BatchQueryLimit;
                     checkExists = $"SELECT {idColumn} FROM {tableName} WHERE {idColumn} = {currentId}";
                     existsCmd = new MySqlCommand(checkExists, conn);
 
@@ -98,7 +100,116 @@ namespace LobitaDownloader
             }
             catch (Exception e)
             {
-                Report(e);
+                PrintUtils.Report(e);
+            }
+
+            conn.Close();
+        }
+
+        public void CountTagLinks()
+        {
+            string getTagLinksCount =
+                $"SELECT t.id, COUNT(l.id) " +
+                $"FROM tags AS t, tag_links AS tl, links AS l " +
+                $"WHERE t.id = tl.tag_id AND l.id = tl.link_id AND t.id IN (%) " +
+                $"GROUP BY t.id";
+
+            CountPosts("tags", "id", "post_count", getTagLinksCount);
+        }
+
+        public void CountSeriesLinks()
+        {
+            string getSeriesLinksCount =
+                $"SELECT s.id, COUNT(l.id) " +
+                $"FROM tags AS t, series_tags AS st, series AS s, links AS l, tag_links AS tl " +
+                $"WHERE t.id = tl.tag_id AND l.id = tl.link_id AND t.id = st.tag_id AND st.series_id = s.id AND s.id IN (%) " +
+                $"GROUP BY s.id";
+
+            CountPosts("series", "id", "post_count", getSeriesLinksCount);
+        }
+
+        private void CountPosts(string tableName, string idColumn, string countColumn, string countQuery)
+        {
+            try
+            {
+                string output = "Computing post counts...";
+                int tagsOffset = 0;
+
+                PrintUtils.PrintRow(output, 0, 0);
+                conn.Open();
+
+                while (true)
+                {
+                    string getTagIDs = $"SELECT {idColumn} FROM {tableName} LIMIT {BatchQueryLimit} OFFSET {tagsOffset}";
+                    StringBuilder sb = new StringBuilder();
+                    List<int> ids = new List<int>(); 
+                    MySqlCommand cmd = new MySqlCommand(getTagIDs, conn);
+
+                    cmd.CommandTimeout = TimeOut;
+
+                    MySqlDataReader rdr = cmd.ExecuteReader();
+
+                    while (rdr.Read())
+                    {
+                        ids.Add((int)rdr[0]);
+                        sb.Append((int)rdr[0] + ",");
+                    }
+
+                    if (!rdr.HasRows)
+                    {
+                        break;
+                    }
+
+                    rdr.Close();
+
+                    sb.Remove(sb.Length - 1, 1);
+                    string countQueryUpdated = countQuery.Replace("%", sb.ToString());
+
+                    cmd = new MySqlCommand(countQueryUpdated, conn);
+
+                    cmd.CommandTimeout = TimeOut;
+
+                    string updateCount;
+                    var idCounts = new Dictionary<int, long>();
+                    rdr = cmd.ExecuteReader();
+
+                    while (rdr.Read())
+                    {
+                        idCounts.Add((int)rdr[0], (long)rdr[1]);
+                    }
+
+                    rdr.Close();
+
+                    foreach (int id in ids)
+                    {
+                        if (!idCounts.ContainsKey(id))
+                        {
+                            idCounts.Add(id, 0);
+                        }
+                    }
+
+                    foreach (var pair in idCounts)
+                    {
+                        output = $"Updating {idColumn} {pair.Key} with {countColumn} = {pair.Value}.";
+
+                        PrintUtils.PrintRow(output, 0, 0);
+
+                        updateCount = $"UPDATE {tableName} SET {countColumn} = {pair.Value} WHERE {idColumn} = {pair.Key}";
+                        cmd = new MySqlCommand(updateCount, conn);
+
+                        cmd.ExecuteNonQuery();
+                    }
+
+                    tagsOffset += BatchQueryLimit;
+
+                    output = $"Processed {BatchQueryLimit} posts ({tagsOffset} done).";
+
+                    PrintUtils.PrintRow(output, 0, 0);
+                }
+            }
+            catch (Exception e)
+            {
+                PrintUtils.Report(e);
             }
 
             conn.Close();
@@ -170,14 +281,14 @@ namespace LobitaDownloader
                         j++;
                     }
 
-                    if (j >= batchQueryLimit || k == index.Keys.Count - 1)
+                    if (j >= BatchQueryLimit || k == index.Keys.Count - 1)
                     {
                         insertTagLinks.Remove(insertTagLinks.Length - 1, 1);
                         insertTagLinks.Append(";");
 
                         cmd = new MySqlCommand(insertTagLinks.ToString(), conn);
 
-                        cmd.CommandTimeout = timeOut;
+                        cmd.CommandTimeout = TimeOut;
                         cmd.ExecuteNonQuery();
                         transaction.Commit();
 
@@ -192,7 +303,7 @@ namespace LobitaDownloader
             }
             catch (Exception e)
             {
-                Report(e);
+                PrintUtils.Report(e);
 
                 if (transaction != null)
                 {
@@ -268,14 +379,14 @@ namespace LobitaDownloader
                         j++;
                     }
 
-                    if (j >= batchQueryLimit || k == index.Keys.Count - 1)
+                    if (j >= BatchQueryLimit || k == index.Keys.Count - 1)
                     {
                         insertSeriesTags.Remove(insertSeriesTags.Length - 1, 1);
                         insertSeriesTags.Append(";");
 
                         cmd = new MySqlCommand(insertSeriesTags.ToString(), conn);
 
-                        cmd.CommandTimeout = timeOut;
+                        cmd.CommandTimeout = TimeOut;
                         cmd.ExecuteNonQuery();
                         transaction.Commit();
 
@@ -290,7 +401,7 @@ namespace LobitaDownloader
             }
             catch (Exception e)
             {
-                Report(e);
+                PrintUtils.Report(e);
 
                 if (transaction != null)
                 {
@@ -324,7 +435,7 @@ namespace LobitaDownloader
                     replacedName = s.Replace("'", "''");
                     insertValues.Append($"('{replacedName}')");
 
-                    if (values.Count == 1 || (j > 0 && (j % batchQueryLimit == 0 || j == values.Count - 1)))
+                    if (values.Count == 1 || (j > 0 && (j % BatchQueryLimit == 0 || j == values.Count - 1)))
                     {
                         insertValues.Append(";");
 
@@ -346,7 +457,7 @@ namespace LobitaDownloader
             }
             catch (Exception e)
             {
-                Report(e);
+                PrintUtils.Report(e);
             }
 
             conn.Close();
@@ -389,22 +500,12 @@ namespace LobitaDownloader
             }
             catch (Exception e)
             {
-                Report(e);
+                PrintUtils.Report(e);
             }
 
             conn.Close();
 
             return isOpen;
-        }
-
-        private void Report(Exception e)
-        {
-            if (Resources.SystemLogger != null)
-            {
-                Resources.SystemLogger.Log(e.Message + Environment.NewLine + e.StackTrace);
-            }
-
-            Console.WriteLine(e.Message + Environment.NewLine + e.StackTrace);
         }
     }
 }

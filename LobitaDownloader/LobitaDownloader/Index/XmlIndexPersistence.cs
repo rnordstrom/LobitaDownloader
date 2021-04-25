@@ -171,5 +171,15 @@ namespace LobitaDownloader
         {
             return Directory.Exists(_backupLocation);
         }
+
+        public void CountTagLinks()
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public void CountSeriesLinks()
+        {
+            throw new System.NotImplementedException();
+        }
     }
 }

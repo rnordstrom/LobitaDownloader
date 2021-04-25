@@ -80,7 +80,7 @@ namespace LobitaDownloader
     {
         static int Main(string[] args)
         {
-            string usageString = "Usage: LobitaDownloader index | backup | clean>";
+            string usageString = "Usage: LobitaDownloader index | backup | clean | count>";
 
             Resources.SystemLogger = new Logger("syslogs");
 
@@ -123,6 +123,16 @@ namespace LobitaDownloader
                             return -1;
                         }
                         break;
+                    case "count":
+                        if (CheckConnections(persistence, backup))
+                        {
+                            indexBuilder.Count();
+                        }
+                        else
+                        {
+                            return -1;
+                        }
+                        break;
                     default:
                         Console.WriteLine(usageString);
                         return -1;
@@ -130,8 +140,7 @@ namespace LobitaDownloader
             }
             catch(Exception e)
             {
-                Console.WriteLine(e.Message + Environment.NewLine + e.StackTrace);
-                Resources.SystemLogger.Log(e.Message + Environment.NewLine + e.StackTrace);
+                PrintUtils.Report(e);
 
                 return -1;
             }
@@ -147,17 +156,15 @@ namespace LobitaDownloader
             {
                 return true;
             }
-            else if (!persistence.IsConnected())
+
+            if (!persistence.IsConnected())
             {
                 Console.WriteLine("Failed to connect to primary persistence.");
             }
-            else if (!backup.IsConnected())
+            
+            if (!backup.IsConnected())
             {
                 Console.WriteLine("Failed to connect to backup storage.");
-            }
-            else
-            {
-                Console.WriteLine("Failed to connect to primary persistence and backup storage.");
             }
 
             return false;
