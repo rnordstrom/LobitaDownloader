@@ -16,6 +16,7 @@ namespace LobitaDownloader
         private HttpXmlClient client;
         private const string TestBooruUrl = "https://testbooru.donmai.us/";
         private const string DanBooruUrl = "https://danbooru.donmai.us/";
+        private string urlToUse;
         private int numThreads = 0;
         private const int TagsLimit = 1000;
         private const int PostsLimit = 1000;
@@ -25,10 +26,16 @@ namespace LobitaDownloader
 
         public IndexBuilder(IIndexPersistence persistence, IIndexPersistence backup, IConfigManager config)
         {
+            #if DEBUG
+                urlToUse = TestBooruUrl;
+            #else
+                urlToUse = DanBooruUrl;
+            #endif
+
             _persistence = persistence;
             _backup = backup;
             _config = config;
-            client = new HttpXmlClient(DanBooruUrl);
+            client = new HttpXmlClient(urlToUse);
 
             numThreads = int.Parse(_config.GetItemByName("NumThreads"));
         }
@@ -52,7 +59,7 @@ namespace LobitaDownloader
             // Fetch character tags
             do
             {
-                tagRoot = client.GetPosts(DanBooruUrl + $"tags.xml?search[category]=4&limit={TagsLimit}&page=a{lastId}&only=name,id,post_count").Result;
+                tagRoot = client.GetPosts(urlToUse + $"tags.xml?search[category]=4&limit={TagsLimit}&page=a{lastId}&only=name,id,post_count").Result;
                 tagNodes = tagRoot.SelectNodes("tag");
 
                 for (int i = 0; i < tagNodes.Count; i++)
@@ -83,7 +90,7 @@ namespace LobitaDownloader
 
             do
             {
-                tagRoot = client.GetPosts(DanBooruUrl + $"tags.xml?search[category]=3&limit={TagsLimit}&page=a{lastId}&only=name,id").Result;
+                tagRoot = client.GetPosts(urlToUse + $"tags.xml?search[category]=3&limit={TagsLimit}&page=a{lastId}&only=name,id").Result;
                 tagNodes = tagRoot.SelectNodes("tag");
 
                 for (int i = 0; i < tagNodes.Count; i++)
@@ -213,9 +220,6 @@ namespace LobitaDownloader
             int lastId = 0;
             int j = 1;
             int l = 1;
-            int nullIdCount = 0;
-            int nullFileCount = 0;
-            int nullSeriesCount = 0;
             string tagName;
             string output;
             string path;
@@ -240,19 +244,8 @@ namespace LobitaDownloader
 
                         PrintUtils.PrintRow(output, 0, int.Parse(Thread.CurrentThread.Name));
 
-                        path = DanBooruUrl + $"posts.xml?tags={tagName} rating:safe&limit={PostsLimit}&page=a{lastId}&only=id,file_url,tag_string_copyright";
+                        path = urlToUse + $"posts.xml?tags={tagName} rating:safe&limit={PostsLimit}&page=a{lastId}&only=id,file_url,tag_string_copyright";
                         postRoot = client.GetPosts(path).Result;
-
-                        // Keep trying to fetch posts if the first request fails
-                        while (postRoot == null)
-                        {
-                            output = $"Thread {int.Parse(Thread.CurrentThread.Name)} (stalled), processing tag '{tagName}' ({i - start + 1} / {end - start + 1}; page #{j}).";
-
-                            PrintUtils.PrintRow(output, 0, int.Parse(Thread.CurrentThread.Name));
-
-                            postRoot = client.GetPosts(path).Result;
-                        }
-
                         postNodes = postRoot.SelectNodes("post");
 
                         for (int k = 0; k < postNodes.Count; k++)
@@ -264,10 +257,6 @@ namespace LobitaDownloader
                             if (fileNode != null)
                             {
                                 tagLinks[tagName].Add(fileNode.InnerText);
-                            }
-                            else
-                            {
-                                nullFileCount++;
                             }
 
                             if (seriesNode != null)
@@ -286,10 +275,6 @@ namespace LobitaDownloader
                                         }
                                     }
                                 }
-                            }
-                            else
-                            {
-                                nullSeriesCount++;
                             }
 
                             // If there is no post ID, keep searching until one is found on the page or move on to the next tag
@@ -310,8 +295,6 @@ namespace LobitaDownloader
                                 }
                                 else
                                 {
-                                    nullIdCount++;
-
                                     noIdsLeft = true;
                                 }
 
@@ -333,21 +316,6 @@ namespace LobitaDownloader
                     Resources.SystemLogger.Log($"Failed to retrieve page {j + 1} posts for tag {tagName}.\n" + e.StackTrace);
                 }
 
-                if (nullIdCount > 0)
-                {
-                    Resources.SystemLogger.Log($"Encountered {nullIdCount} instances of null ID for tag {tagName}.");
-                }
-
-                if (nullFileCount > 0)
-                {
-                    Resources.SystemLogger.Log($"Encountered {nullFileCount} instances of null file URL for tag {tagName}.");
-                }
-
-                if (nullSeriesCount > 0)
-                {
-                    Resources.SystemLogger.Log($"Encountered {nullSeriesCount} instances of null series tags for tag {tagName}.");
-                }
-
                 topSeries = IndexUtils.GetTopSeries(ref tagOccurrences, SeriesLimit);
 
                 foreach (string series in topSeries)
@@ -357,8 +325,6 @@ namespace LobitaDownloader
 
                 j = 1;
                 lastId = 0;
-                nullIdCount = 0;
-                nullFileCount = 0;
                 noIdsLeft = false;
                 tagOccurrences.Clear();
 
