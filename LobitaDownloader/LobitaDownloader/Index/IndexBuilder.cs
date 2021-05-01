@@ -21,6 +21,7 @@ namespace LobitaDownloader
         private const int TagsLimit = 1000;
         private const int PostsLimit = 1000;
         private const int SeriesLimit = 1;
+        private const int BackoffLimitSeconds = 320;
         private IDictionary<string, List<string>> tagLinks = new ConcurrentDictionary<string, List<string>>();
         private IDictionary<string, HashSet<string>> seriesTags = new ConcurrentDictionary<string, HashSet<string>>();
 
@@ -220,12 +221,13 @@ namespace LobitaDownloader
             int lastId = 0;
             int j = 1;
             int l = 1;
+            int backoffSeconds;
             string tagName;
             string output;
             string path;
             bool noIdsLeft = false;
             XmlElement postRoot;
-            XmlNodeList postNodes;
+            XmlNodeList postNodes = null;
             XmlNode fileNode;
             XmlNode idNode;
             XmlNode seriesNode;
@@ -235,17 +237,31 @@ namespace LobitaDownloader
             for (int i = start; i <= end; i++)
             {
                 tagName = tagLinks.Keys.ElementAt(i);
-
-                try
+                
+                do
                 {
-                    do
+                    try
                     {
+                        backoffSeconds = 10;
                         output = $"Thread {int.Parse(Thread.CurrentThread.Name)}, processing tag '{tagName}' ({i - start + 1} / {end - start + 1}; page #{j}).";
 
                         PrintUtils.PrintRow(output, 0, int.Parse(Thread.CurrentThread.Name));
 
                         path = urlToUse + $"posts.xml?tags={tagName} rating:safe&limit={PostsLimit}&page=a{lastId}&only=id,file_url,tag_string_copyright";
                         postRoot = client.GetPosts(path).Result;
+
+                        // Keep trying to fetch posts if the first request fails. Wait for a doubling backoff-period.
+                        while (postRoot == null && backoffSeconds <= BackoffLimitSeconds)
+                        {
+                            output = $"Thread {int.Parse(Thread.CurrentThread.Name)} (Stalled; backoff: {backoffSeconds}), processing tag '{tagName}' ({i - start + 1} / {end - start + 1}; page #{j}).";
+
+                            PrintUtils.PrintRow(output, 0, int.Parse(Thread.CurrentThread.Name));
+                            Thread.Sleep(backoffSeconds * 1000);
+
+                            postRoot = client.GetPosts(path).Result;
+                            backoffSeconds *= 2;
+                        }
+
                         postNodes = postRoot.SelectNodes("post");
 
                         for (int k = 0; k < postNodes.Count; k++)
@@ -309,12 +325,12 @@ namespace LobitaDownloader
                             break;
                         }
                     }
-                    while (postNodes.Count != 0);
+                    catch (NullReferenceException e)
+                    {
+                        Resources.SystemLogger.Log($"Failed to retrieve page {j + 1} posts for tag {tagName}." + Environment.NewLine + e.StackTrace);
+                    }
                 }
-                catch (NullReferenceException e)
-                {
-                    Resources.SystemLogger.Log($"Failed to retrieve page {j + 1} posts for tag {tagName}.\n" + e.StackTrace);
-                }
+                while (postNodes.Count != 0);
 
                 topSeries = IndexUtils.GetTopSeries(ref tagOccurrences, SeriesLimit);
 
