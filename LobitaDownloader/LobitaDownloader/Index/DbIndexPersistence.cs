@@ -478,16 +478,6 @@ namespace LobitaDownloader
             return uniqueSet;
         }
 
-        public IDictionary<string, List<string>> GetTagIndex()
-        {
-            throw new NotImplementedException();
-        }
-
-        public IDictionary<string, HashSet<string>> GetSeriesIndex()
-        {
-            throw new NotImplementedException();
-        }
-
         public bool IsConnected()
         {
             bool isOpen = false;

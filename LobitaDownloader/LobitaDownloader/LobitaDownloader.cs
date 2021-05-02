@@ -12,6 +12,12 @@ namespace LobitaDownloader
         INDETERMINATE
     }
 
+    public enum ModificationStatus
+    {
+        DONE,
+        UNMODIFIED
+    }
+
     public abstract class FileData
     {
         public string FileExt { get; }
@@ -80,17 +86,17 @@ namespace LobitaDownloader
     {
         static int Main(string[] args)
         {
-            string usageString = "Usage: LobitaDownloader index | backup | clean | count>";
-
-            Resources.SystemLogger = new Logger("syslogs");
-
-            XmlConfigManager config = new XmlConfigManager(Resources.ProductionDirectory, Resources.ConfigFile);
-            DbIndexPersistence persistence = new DbIndexPersistence(config);
-            XmlIndexPersistence backup = new XmlIndexPersistence(config);
-            IndexBuilder indexBuilder = new IndexBuilder(persistence, backup, config);
+            string usageString = "Usage: LobitaDownloader index | backup | recover | clean>";
 
             try
             {
+                Resources.SystemLogger = new Logger("syslogs");
+
+                XmlConfigManager config = new XmlConfigManager(Resources.ProductionDirectory, Resources.ConfigFile);
+                DbIndexPersistence persistence = new DbIndexPersistence(config);
+                XmlIndexBackup backup = new XmlIndexBackup(config);
+                IndexBuilder indexBuilder = new IndexBuilder(persistence, backup, config);
+
                 switch (args[0])
                 {
                     case "index":
@@ -113,20 +119,20 @@ namespace LobitaDownloader
                             return -1;
                         }
                         break;
-                    case "clean":
+                    case "recover":
                         if (CheckConnections(persistence, backup))
                         {
-                            indexBuilder.CleanUp();
+                            indexBuilder.Recover();
                         }
                         else
                         {
                             return -1;
                         }
                         break;
-                    case "count":
+                    case "clean":
                         if (CheckConnections(persistence, backup))
                         {
-                            indexBuilder.Count();
+                            indexBuilder.CleanUp();
                         }
                         else
                         {
@@ -150,7 +156,7 @@ namespace LobitaDownloader
             return 0;
         }
 
-        private static bool CheckConnections(IIndexPersistence persistence, IIndexPersistence backup)
+        private static bool CheckConnections(IIndexPersistence persistence, IIndexBackup backup)
         {
             if (persistence.IsConnected() && backup.IsConnected())
             {
