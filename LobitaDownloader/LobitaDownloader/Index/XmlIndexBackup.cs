@@ -40,83 +40,6 @@ namespace LobitaDownloader
             }
         }
 
-        public void BackupTagLinksFull(IDictionary<string, List<string>> index)
-        {
-            CleanTagLinks();
-
-            tagsDoc = InitializeDocument();
-    
-            XmlElement tagsElement = tagsDoc.CreateElement(string.Empty, "tags", string.Empty);
-            XmlElement tagElement;
-            XmlElement linkElement;
-            
-            tagsDoc.AppendChild(tagsElement);
-
-            int i = 1;
-            string output;
-
-            foreach (string tagName in index.Keys)
-            {
-                output = $"Backing up tag ({i++} / {index.Keys.Count}).";
-                PrintUtils.PrintRow(output, 0, 0);
-
-                tagElement = tagsDoc.CreateElement(string.Empty, "tag", string.Empty);
-
-                tagElement.SetAttribute("name", ReplaceDoubleQuotes(tagName));
-
-                foreach (string link in index[tagName])
-                {
-                    linkElement = tagsDoc.CreateElement(string.Empty, "url", string.Empty);
-
-                    linkElement.AppendChild(tagsDoc.CreateTextNode(link));
-                    tagElement.AppendChild(linkElement);
-                }
-
-                tagElement.SetAttribute("status", ModificationStatus.DONE.ToString());
-                tagsElement.AppendChild(tagElement);
-            }
-
-            tagsDoc.Save(TagsFileName);
-        }
-
-        public void BackupSeriesTagsFull(IDictionary<string, HashSet<string>> index)
-        {
-            CleanSeries();
-
-            seriesDoc = InitializeDocument();
-
-            XmlElement allSeriesElement = seriesDoc.CreateElement(string.Empty, "all_series", string.Empty);
-            XmlElement seriesElement;
-            XmlElement tagElement;
-
-            seriesDoc.AppendChild(allSeriesElement);
-
-            int i = 1;
-            string output;
-
-            foreach (string seriesName in index.Keys)
-            {
-                output = $"Backing up series ({i++} / {index.Keys.Count}).";
-                PrintUtils.PrintRow(output, 0, 0);
-
-                seriesElement = seriesDoc.CreateElement(string.Empty, "series", string.Empty);
-
-                seriesElement.SetAttribute("name", ReplaceDoubleQuotes(seriesName));
-
-                foreach (string tagName in index[seriesName])
-                {
-                    tagElement = seriesDoc.CreateElement(string.Empty, "tag", string.Empty);
-
-                    tagElement.SetAttribute("name", ReplaceDoubleQuotes(tagName));
-                    seriesElement.AppendChild(tagElement);
-                }
-
-                allSeriesElement.AppendChild(seriesElement);
-            }
-
-            seriesDoc.Save(SeriesFileName);
-        }
-
         public void BackupSingleTagLinks(string tagName, List<string> links)
         {
             if (tagsDoc == null)
@@ -228,13 +151,15 @@ namespace LobitaDownloader
 
         public IDictionary<string, List<string>> GetTagIndex(ModificationStatus status)
         {
-            XmlDocument doc = new XmlDocument();
+            if (tagsDoc == null)
+            {
+                tagsDoc = LoadDocument(TagsFileName);
+            }
+
             Dictionary<string, List<string>> tagLinks = new Dictionary<string, List<string>>();
             List<string> links;
 
-            doc.Load(TagsFileName);
-
-            XmlNodeList tagNodes = doc.SelectSingleNode("tags").SelectNodes("tag");
+            XmlNodeList tagNodes = tagsDoc.SelectSingleNode("tags").SelectNodes("tag");
 
             foreach (XmlElement tag in tagNodes)
             {
@@ -256,13 +181,17 @@ namespace LobitaDownloader
 
         public IDictionary<string, HashSet<string>> GetSeriesIndex()
         {
-            XmlDocument doc = new XmlDocument();
+            if (seriesDoc == null)
+            {
+                seriesDoc = LoadDocument(SeriesFileName);
+            }
+
             Dictionary<string, HashSet<string>> seriesTags = new Dictionary<string, HashSet<string>>();
             HashSet<string> tags;
 
-            doc.Load(SeriesFileName);
+            seriesDoc.Load(SeriesFileName);
 
-            XmlNodeList seriesNodes = doc.SelectSingleNode("all_series").SelectNodes("series");
+            XmlNodeList seriesNodes = seriesDoc.SelectSingleNode("all_series").SelectNodes("series");
 
             foreach (XmlElement series in seriesNodes)
             {
