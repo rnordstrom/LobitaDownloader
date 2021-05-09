@@ -191,7 +191,7 @@ namespace LobitaDownloader
 
                     foreach (var pair in idCounts)
                     {
-                        output = $"Updating {idColumn} {pair.Key} with {countColumn} = {pair.Value}.";
+                        output = $"Updating {idColumn} {pair.Key} with {countColumn} = {pair.Value} in table '{tableName}'.";
 
                         PrintUtils.PrintRow(output, 0, 0);
 
@@ -203,7 +203,7 @@ namespace LobitaDownloader
 
                     tagsOffset += BatchQueryLimit;
 
-                    output = $"Processed {BatchQueryLimit} posts ({tagsOffset} done).";
+                    output = $"Processed {BatchQueryLimit} posts in table '{tableName}' ({tagsOffset} done).";
 
                     PrintUtils.PrintRow(output, 0, 0);
                 }
