@@ -94,39 +94,6 @@ namespace LobitaDownloader.Tests
             CollectionAssert.AreEqual(seriesNames, readSeriesTags.Keys);
         }
 
-        [TestMethod]
-        public void BackupFullAndReadTest()
-        {
-            backup.BackupTagLinksFull(tagLinks);
-            backup.BackupSeriesTagsFull(seriesTags);
-
-            Assert.IsTrue(File.Exists(backup.TagsFileName));
-            Assert.IsTrue(File.Exists(backup.SeriesFileName));
-
-            Dictionary<string, List<string>> readTagLinks
-                = (Dictionary<string, List<string>>)backup.GetTagIndex(ModificationStatus.DONE);
-            Dictionary<string, HashSet<string>> readSeriesTags
-                = (Dictionary<string, HashSet<string>>)backup.GetSeriesIndex();
-
-            CollectionAssert.AreEqual(tagLinks.Keys, readTagLinks.Keys);
-            CollectionAssert.AreEqual(seriesTags.Keys, readSeriesTags.Keys);
-
-            foreach (string tagName in tagLinks.Keys)
-            {
-                CollectionAssert.AreEqual(tagLinks[tagName], readTagLinks[tagName]);
-            }
-
-            foreach (string seriesName in seriesTags.Keys)
-            {
-                Assert.AreEqual(seriesTags[seriesName].Count, readSeriesTags[seriesName].Count);
-
-                foreach (string s in seriesTags[seriesName])
-                {
-                    Assert.IsTrue(readSeriesTags[series].Contains(s));
-                }
-            }
-        }
-
         [TestMethod()]
         public void IsConnectedTest()
         {
