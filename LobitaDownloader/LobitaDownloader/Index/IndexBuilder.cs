@@ -124,19 +124,7 @@ namespace LobitaDownloader
             FetchData();
 
             // Persist to database
-            Console.Clear();
-            Console.WriteLine("Writing to database...");
-
-            _persistence.CleanTagLinks();
-            _persistence.PersistTagLinks(tagLinks);
-            
-            _persistence.CleanSeries();
-            _persistence.PersistSeriesTags(seriesTags);
-
-            _persistence.CountTagLinks();
-            _persistence.CountSeriesLinks();
-
-            SwitchDatabase();
+            BackupRestore();
 
             watch.Stop();
 
