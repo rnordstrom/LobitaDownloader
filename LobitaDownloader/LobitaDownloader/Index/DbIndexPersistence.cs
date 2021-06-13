@@ -44,7 +44,9 @@ namespace LobitaDownloader
         {
             try
             {
-                Console.WriteLine("Cleaning database...");
+                string output = "Cleaning database...";
+
+                PrintUtils.PrintRow(output, 0, 0);
 
                 conn.Open();
                 
@@ -65,7 +67,6 @@ namespace LobitaDownloader
                 string checkExists = $"SELECT {idColumn} FROM {tableName} WHERE {idColumn} = {currentId}";
                 string deleteBatch = $"DELETE FROM {tableName} LIMIT {BatchQueryLimit}";
                 string resetInc = $"ALTER TABLE {tableName} AUTO_INCREMENT = 1";
-                string output;
 
                 MySqlCommand existsCmd = new MySqlCommand(checkExists, conn);
                 MySqlCommand deleteCmd = new MySqlCommand(deleteBatch, conn);
@@ -84,7 +85,7 @@ namespace LobitaDownloader
                     existsCmd = new MySqlCommand(checkExists, conn);
 
                     rdr = existsCmd.ExecuteReader();
-                    output = $"Deleted {deleted} rows.";
+                    output = $"Deleted {deleted} rows from table '{tableName}'.";
 
                     PrintUtils.PrintRow(output, 0, 0);
                 }
@@ -190,7 +191,7 @@ namespace LobitaDownloader
 
                     foreach (var pair in idCounts)
                     {
-                        output = $"Updating {idColumn} {pair.Key} with {countColumn} = {pair.Value}.";
+                        output = $"Updating {idColumn} {pair.Key} with {countColumn} = {pair.Value} in table '{tableName}'.";
 
                         PrintUtils.PrintRow(output, 0, 0);
 
@@ -202,7 +203,7 @@ namespace LobitaDownloader
 
                     tagsOffset += BatchQueryLimit;
 
-                    output = $"Processed {BatchQueryLimit} posts ({tagsOffset} done).";
+                    output = $"Processed {BatchQueryLimit} posts in table '{tableName}' ({tagsOffset} done).";
 
                     PrintUtils.PrintRow(output, 0, 0);
                 }

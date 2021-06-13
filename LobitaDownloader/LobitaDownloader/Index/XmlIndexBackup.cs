@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Xml;
 
@@ -40,56 +39,70 @@ namespace LobitaDownloader
             }
         }
 
-        public void BackupSingleTagLinks(string tagName, List<string> links)
+        public void BackupTagLinks(IDictionary<string, List<string>> index)
         {
             if (tagsDoc == null)
             {
                 tagsDoc = LoadDocument(TagsFileName);
             }
 
-            XmlNode tagNode = tagsDoc.SelectSingleNode("tags").SelectSingleNode("tag[@name=\"" + ReplaceDoubleQuotes(tagName) + "\"]");
+            XmlNode tagNode;
             XmlElement linkElement;
 
-            if (tagNode.HasChildNodes)
+            foreach (string tagName in index.Keys)
             {
-                foreach (XmlNode x in tagNode.ChildNodes)
+                tagNode = tagsDoc.SelectSingleNode("tags").SelectSingleNode("tag[@name=\"" + ReplaceDoubleQuotes(tagName) + "\"]");
+
+                if (tagNode.HasChildNodes)
                 {
-                    tagNode.RemoveChild(x);
+                    foreach (XmlNode x in tagNode.ChildNodes)
+                    {
+                        tagNode.RemoveChild(x);
+                    }
                 }
+
+                foreach (string link in index[tagName])
+                {
+                    linkElement = tagsDoc.CreateElement(string.Empty, "url", string.Empty);
+
+                    linkElement.AppendChild(tagsDoc.CreateTextNode(link));
+                    tagNode.AppendChild(linkElement);
+                }
+
+                tagNode.Attributes["status"].Value = ModificationStatus.DONE.ToString();
             }
-
-            foreach (string link in links)
-            {
-                linkElement = tagsDoc.CreateElement(string.Empty, "url", string.Empty);
-
-                linkElement.AppendChild(tagsDoc.CreateTextNode(link));
-                tagNode.AppendChild(linkElement);
-            }
-
-            tagNode.Attributes["status"].Value = ModificationStatus.DONE.ToString();
 
             tagsDoc.Save(TagsFileName);
         }
 
-        public void BackupSingleSeriesTags(string seriesName, string tagName)
+        public void BackupSeriesTags(IDictionary<string, HashSet<string>> index)
         {
             if (seriesDoc == null)
             {
                 seriesDoc = LoadDocument(SeriesFileName);
             }
 
-            XmlNode seriesNode = seriesDoc.SelectSingleNode("all_series").SelectSingleNode("series[@name=\"" + ReplaceDoubleQuotes(seriesName) + "\"]");
+            XmlNode seriesNode;
             XmlElement tagElement;
 
-            if (seriesNode.SelectSingleNode("tag[@name=\"" + ReplaceDoubleQuotes(tagName) + "\"]") == null)
+            foreach (string seriesName in index.Keys)
             {
-                tagElement = seriesDoc.CreateElement(string.Empty, "tag", string.Empty);
+                seriesNode = seriesDoc.SelectSingleNode("all_series").SelectSingleNode("series[@name=\"" + ReplaceDoubleQuotes(seriesName) + "\"]");
 
-                tagElement.SetAttribute("name", ReplaceDoubleQuotes(tagName));
-                seriesNode.AppendChild(tagElement);
+                foreach (string tagName in index[seriesName])
+                {
+                    if (seriesNode.SelectSingleNode("tag[@name=\"" + ReplaceDoubleQuotes(tagName) + "\"]") == null)
+                    {
+                        tagElement = seriesDoc.CreateElement(string.Empty, "tag", string.Empty);
 
-                seriesDoc.Save(SeriesFileName);
+                        tagElement.SetAttribute("name", ReplaceDoubleQuotes(tagName));
+                        seriesNode.AppendChild(tagElement);
+
+                    }
+                }
             }
+            
+            seriesDoc.Save(SeriesFileName);
         }
 
         public void BackupTagNames(List<string> tagNames)
@@ -149,7 +162,7 @@ namespace LobitaDownloader
             seriesDoc.Save(SeriesFileName);
         }
 
-        public IDictionary<string, List<string>> GetTagIndex(ModificationStatus status)
+        public IDictionary<string, List<string>> GetTagIndex(ModificationStatus status, int batchSize = -1)
         {
             if (tagsDoc == null)
             {
@@ -173,6 +186,11 @@ namespace LobitaDownloader
                     }
 
                     tagLinks.Add(tag.GetAttribute("name"), links);
+                }
+
+                if (batchSize > 0 && tagLinks.Count == batchSize)
+                {
+                    break;
                 }
             }
 
