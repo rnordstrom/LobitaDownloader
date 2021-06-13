@@ -212,7 +212,7 @@ namespace LobitaDownloader
 
             foreach (var l in limits)
             {
-                threads[j] = new Thread(() => GetLinks(l.Item1, l.Item2));
+                threads[j] = new Thread(() => GetLinks(tagLinks.Keys.ToList().GetRange(l.Item1, l.Item2 - l.Item1)));
                 threads[j].Name = j.ToString();
                 threads[j].Start();
 
@@ -225,7 +225,7 @@ namespace LobitaDownloader
             }
         }
 
-        private void GetLinks(int start, int end)
+        private void GetLinks(ICollection<string> tagNames)
         {
             int j = 1;
             int backoffSeconds;
@@ -237,20 +237,19 @@ namespace LobitaDownloader
             XmlNode fileNode;
             XmlNode seriesNode;
             IDictionary<string, int> tagOccurrences = new Dictionary<string, int>();
-            List<string> linksForTag = new List<string>();
             HashSet<string> topSeries;
             int threadId = int.Parse(Thread.CurrentThread.Name);
 
-            for (int i = start; i <= end; i++)
+            for (int i = 0; i < tagNames.Count; i++)
             {
-                tagName = tagLinks.Keys.ElementAt(i);
+                tagName = tagNames.ElementAt(i);
                 
                 while (true)
                 {
                     try
                     {
                         backoffSeconds = 10;
-                        output = $"Thread {threadId}: processing tag '{tagName}' ({i - start + 1} / {end - start + 1}; page #{j}).";
+                        output = $"Thread {threadId}: processing tag '{tagName}' ({i + 1} / {tagNames.Count}; page #{j}).";
 
                         PrintUtils.PrintRow(output, 0, threadId);
 
@@ -260,7 +259,7 @@ namespace LobitaDownloader
                         // Keep trying to fetch a page of posts if the first request fails. Wait for a doubling backoff-period.
                         while (postRoot == null && backoffSeconds <= BackoffLimitSeconds)
                         {
-                            output = $"Thread {threadId} (Stalled; backoff: {backoffSeconds}), processing tag '{tagName}' ({i - start + 1} / {end - start + 1}; page #{j}).";
+                            output = $"Thread {threadId} (Stalled; backoff: {backoffSeconds}), processing tag '{tagName}' ({i + 1} / {tagNames.Count}; page #{j}).";
 
                             PrintUtils.PrintRow(output, 0, threadId);
                             Thread.Sleep(backoffSeconds * 1000);
@@ -285,7 +284,7 @@ namespace LobitaDownloader
                             // If there is no file url, simply skip the post
                             if (fileNode != null)
                             {
-                                linksForTag.Add(fileNode.InnerText);
+                                tagLinks[tagName].Add(fileNode.InnerText);
                             }
 
                             if (seriesNode != null)
@@ -323,11 +322,9 @@ namespace LobitaDownloader
                     seriesTags[series].Add(tagName);
                 }
 
-                tagLinks[tagName] = linksForTag;
                 j = 1;
 
                 tagOccurrences.Clear();
-                linksForTag.Clear();
             }
 
             output = $"Thread {threadId}: done.";

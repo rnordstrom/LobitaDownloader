@@ -51,6 +51,8 @@ namespace LobitaDownloader.Tests
 
             CollectionAssert.AreEqual(tagNames, readTagLinks.Keys);
             CollectionAssert.AreEqual(seriesNames, readSeriesTags.Keys);
+            Assert.IsTrue(readTagLinks.Values.Count > 0);
+            Assert.IsTrue(readSeriesTags.Values.Count > 0);
         }
 
         [TestMethod]
