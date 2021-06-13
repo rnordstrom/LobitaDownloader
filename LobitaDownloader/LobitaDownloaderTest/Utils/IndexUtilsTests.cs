@@ -13,7 +13,7 @@ namespace LobitaDownloader.Tests
             IDictionary<string, int> tagOccurrences = new Dictionary<string, int>();
 
             List<string> keysBefore = tagOccurrences.Keys.ToList();
-            List<string> topSeries = IndexUtils.GetTopSeries(ref tagOccurrences, 10);
+            HashSet<string> topSeries = IndexUtils.GetTopSeries(ref tagOccurrences, 10);
 
             Assert.AreEqual(0, topSeries.Count);
         }
@@ -27,10 +27,10 @@ namespace LobitaDownloader.Tests
             tagOccurrences.Add("pokemon", 8);
             tagOccurrences.Add("spice_and_wolf", 5);
 
-            List<string> keysBefore = tagOccurrences.Keys.ToList();
-            List<string> topSeries = IndexUtils.GetTopSeries(ref tagOccurrences, 10);
+            HashSet<string> keysBefore = tagOccurrences.Keys.ToHashSet();
+            HashSet<string> topSeries = IndexUtils.GetTopSeries(ref tagOccurrences, 10);
 
-            CollectionAssert.AreEqual(keysBefore, topSeries);
+            CollectionAssert.AreEqual(keysBefore.ToList(), topSeries.ToList());
         }
 
         [TestMethod]
@@ -50,7 +50,7 @@ namespace LobitaDownloader.Tests
             tagOccurrences.Add("red_dead_redemption", 4);
             tagOccurrences.Add("grand_theft_auto", 1);
 
-            List<string> topSeries = IndexUtils.GetTopSeries(ref tagOccurrences, 10);
+            HashSet<string> topSeries = IndexUtils.GetTopSeries(ref tagOccurrences, 10);
 
             Assert.AreEqual(10, topSeries.Count);
             Assert.IsFalse(topSeries.Contains("grand_theft_auto"));

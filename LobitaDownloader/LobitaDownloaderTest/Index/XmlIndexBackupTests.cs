@@ -54,7 +54,7 @@ namespace LobitaDownloader.Tests
         }
 
         [TestMethod]
-        public void BackupSingleAndReadTest()
+        public void BackupAndReadTest()
         {
             List<string> tagNames = new List<string>();
             List<string> seriesNames = new List<string>();
@@ -72,26 +72,16 @@ namespace LobitaDownloader.Tests
             backup.BackupTagNames(tagNames);
             backup.BackupSeriesNames(seriesNames);
 
-            foreach (string s in tagNames)
-            {
-                backup.BackupSingleTagLinks(s, tagLinks[s]);
-            }
-
-            foreach (string s in seriesNames)
-            {
-                foreach (string t in seriesTags[s])
-                {
-                    backup.BackupSingleSeriesTags(s, t);
-                }
-            }
+            backup.BackupTagLinks(tagLinks);
+            backup.BackupSeriesTags(seriesTags);
 
             Dictionary<string, List<string>> readTagLinks
                 = (Dictionary<string, List<string>>)backup.GetTagIndex(ModificationStatus.DONE);
             Dictionary<string, HashSet<string>> readSeriesTags
                 = (Dictionary<string, HashSet<string>>)backup.GetSeriesIndex();
 
-            CollectionAssert.AreEqual(tagNames, readTagLinks.Keys);
-            CollectionAssert.AreEqual(seriesNames, readSeriesTags.Keys);
+            CollectionAssert.AreEqual(tagLinks.Keys, readTagLinks.Keys);
+            CollectionAssert.AreEqual(seriesTags.Keys, readSeriesTags.Keys);
         }
 
         [TestMethod()]

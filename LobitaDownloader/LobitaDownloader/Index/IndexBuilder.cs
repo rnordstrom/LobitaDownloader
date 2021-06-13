@@ -39,11 +39,6 @@ namespace LobitaDownloader
             client = new HttpXmlClient(urlToUse);
 
             numThreads = int.Parse(_config.GetItemByName("NumThreads"));
-
-            if (numThreads > 1)
-            {
-                throw new NotSupportedException("Multi-threading is not supported in this version of LobitaDownloader. Please set NumThreads to 1.");
-            }
         }
 
         public void BuildIndex()
@@ -121,10 +116,10 @@ namespace LobitaDownloader
             _backup.BackupSeriesNames(seriesTags.Keys.ToList());
 
             // Fetch data from external source and write to backup
-            FetchData();
+            Backup();
 
             // Persist to database
-            BackupRestore();
+            Persist();
 
             watch.Stop();
 
@@ -134,30 +129,40 @@ namespace LobitaDownloader
             Resources.SystemLogger.Log($"Downloaded {tagLinks.Keys.Count} tags in {timeString} using {numThreads} thread(s).");
         }
 
-        public void Recover()
+        public void Backup()
         {
             Console.Clear();
-            Console.WriteLine("Recovering from previous run...");
+            Console.WriteLine("Backing up data...");
 
-            tagLinks = _backup.GetTagIndex(ModificationStatus.UNMODIFIED);
+            int batchSize = int.Parse(_config.GetItemByName("BatchSize"));
 
-            if (tagLinks.Count == 0)
+            while (true)
             {
-                Console.WriteLine("Index is complete; no recovery necessary.");
+                tagLinks = _backup.GetTagIndex(ModificationStatus.UNMODIFIED, batchSize);
 
-                return;
+                if (tagLinks.Count == 0)
+                {
+                    Console.WriteLine("Index is complete.");
+
+                    break;
+                }
+
+                seriesTags = _backup.GetSeriesIndex();
+
+                FetchData();
+
+                Console.Clear();
+                Console.WriteLine("Writing to files...");
+
+                _backup.BackupTagLinks(tagLinks);
+                _backup.BackupSeriesTags(seriesTags);
             }
-
-            seriesTags = _backup.GetSeriesIndex();
-
-            FetchData();
-            BackupRestore();
         }
 
-        public void BackupRestore()
+        public void Persist()
         {
             Console.Clear();
-            Console.WriteLine("Restoring from backup...");
+            Console.WriteLine("Persisting to database...");
 
             tagLinks = _backup.GetTagIndex(ModificationStatus.DONE);
 
@@ -233,7 +238,8 @@ namespace LobitaDownloader
             XmlNode seriesNode;
             IDictionary<string, int> tagOccurrences = new Dictionary<string, int>();
             List<string> linksForTag = new List<string>();
-            List<string> topSeries;
+            HashSet<string> topSeries;
+            int threadId = int.Parse(Thread.CurrentThread.Name);
 
             for (int i = start; i <= end; i++)
             {
@@ -244,9 +250,9 @@ namespace LobitaDownloader
                     try
                     {
                         backoffSeconds = 10;
-                        output = $"Thread {int.Parse(Thread.CurrentThread.Name)}: processing tag '{tagName}' ({i - start + 1} / {end - start + 1}; page #{j}).";
+                        output = $"Thread {threadId}: processing tag '{tagName}' ({i - start + 1} / {end - start + 1}; page #{j}).";
 
-                        PrintUtils.PrintRow(output, 0, int.Parse(Thread.CurrentThread.Name));
+                        PrintUtils.PrintRow(output, 0, threadId);
 
                         path = urlToUse + $"posts.xml?tags={tagName} rating:safe&limit={PostsLimit}&page={j}&only=file_url,tag_string_copyright";
                         postRoot = client.GetPosts(path).Result;
@@ -254,9 +260,9 @@ namespace LobitaDownloader
                         // Keep trying to fetch a page of posts if the first request fails. Wait for a doubling backoff-period.
                         while (postRoot == null && backoffSeconds <= BackoffLimitSeconds)
                         {
-                            output = $"Thread {int.Parse(Thread.CurrentThread.Name)} (Stalled; backoff: {backoffSeconds}), processing tag '{tagName}' ({i - start + 1} / {end - start + 1}; page #{j}).";
+                            output = $"Thread {threadId} (Stalled; backoff: {backoffSeconds}), processing tag '{tagName}' ({i - start + 1} / {end - start + 1}; page #{j}).";
 
-                            PrintUtils.PrintRow(output, 0, int.Parse(Thread.CurrentThread.Name));
+                            PrintUtils.PrintRow(output, 0, threadId);
                             Thread.Sleep(backoffSeconds * 1000);
 
                             postRoot = client.GetPosts(path).Result;
@@ -311,21 +317,21 @@ namespace LobitaDownloader
 
                 topSeries = IndexUtils.GetTopSeries(ref tagOccurrences, SeriesLimit);
 
-                // Backup each tag
+                // Add to the indices
                 foreach (string series in topSeries)
                 {
-                    _backup.BackupSingleSeriesTags(series, tagName);
+                    seriesTags[series].Add(tagName);
                 }
 
-                _backup.BackupSingleTagLinks(tagName, linksForTag);
-
+                tagLinks[tagName] = linksForTag;
                 j = 1;
 
                 tagOccurrences.Clear();
                 linksForTag.Clear();
-
-                ClearBelow();
             }
+
+            output = $"Thread {threadId}: done.";
+            PrintUtils.PrintRow(output, 0, threadId);
         }
 
         private void SwitchDatabase()
