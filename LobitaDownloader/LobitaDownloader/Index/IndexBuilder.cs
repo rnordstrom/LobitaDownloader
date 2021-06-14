@@ -41,7 +41,7 @@ namespace LobitaDownloader
             numThreads = int.Parse(_config.GetItemByName("NumThreads"));
         }
 
-        public void BuildIndex()
+        public void Index()
         {
             int lastId = 0;
             int j = 1;
@@ -115,11 +115,8 @@ namespace LobitaDownloader
             _backup.BackupTagNames(tagLinks.Keys.ToList());
             _backup.BackupSeriesNames(seriesTags.Keys.ToList());
 
-            // Fetch data from external source and write to backup
-            Backup();
-
-            // Persist to database
-            Persist();
+            // Fetch data from external source and save locally
+            Download();
 
             watch.Stop();
 
@@ -129,10 +126,10 @@ namespace LobitaDownloader
             Resources.SystemLogger.Log($"Downloaded {tagLinks.Keys.Count} tags in {timeString} using {numThreads} thread(s).");
         }
 
-        public void Backup()
+        public void Download()
         {
             Console.Clear();
-            Console.WriteLine("Backing up data...");
+            Console.WriteLine("Downloading data...");
 
             int batchSize = int.Parse(_config.GetItemByName("BatchSize"));
 
@@ -152,17 +149,19 @@ namespace LobitaDownloader
                 FetchData();
 
                 Console.Clear();
-                Console.WriteLine("Writing to files...");
+                Console.WriteLine("Writing to backups...");
 
                 _backup.BackupTagLinks(tagLinks);
                 _backup.BackupSeriesTags(seriesTags);
             }
+
+            Persist();
         }
 
         public void Persist()
         {
             Console.Clear();
-            Console.WriteLine("Persisting to database...");
+            Console.WriteLine("Persisting to database from backups...");
 
             tagLinks = _backup.GetTagIndex(ModificationStatus.DONE);
 
