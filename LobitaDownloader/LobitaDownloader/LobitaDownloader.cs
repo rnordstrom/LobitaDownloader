@@ -86,7 +86,7 @@ namespace LobitaDownloader
     {
         static int Main(string[] args)
         {
-            string usageString = "Usage: LobitaDownloader index | persist | backup | clean>";
+            string usageString = "Usage: LobitaDownloader index | download | persist | update [tagname...] | clean";
 
             try
             {
@@ -102,7 +102,17 @@ namespace LobitaDownloader
                     case "index":
                         if (CheckConnections(persistence, backup))
                         {
-                            indexBuilder.BuildIndex();
+                            indexBuilder.Index();
+                        }
+                        else
+                        {
+                            return -1;
+                        }
+                        break;
+                    case "download":
+                        if (CheckConnections(persistence, backup))
+                        {
+                            indexBuilder.Download();
                         }
                         else
                         {
@@ -119,10 +129,20 @@ namespace LobitaDownloader
                             return -1;
                         }
                         break;
-                    case "backup":
+                    case "update":
                         if (CheckConnections(persistence, backup))
                         {
-                            indexBuilder.Backup();
+                            if (args.Length < 2)
+                            {
+                                Console.WriteLine("Please specify one or more tags.");
+                                return -1;
+                            }
+                            List<string> tagNames = new List<string>();
+                            for (int i = 1; i < args.Length; i++)
+                            {
+                                tagNames.Add(args[i]);
+                            }
+                            indexBuilder.Update(tagNames);
                         }
                         else
                         {

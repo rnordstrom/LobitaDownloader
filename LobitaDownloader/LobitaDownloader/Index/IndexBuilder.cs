@@ -14,8 +14,8 @@ namespace LobitaDownloader
         private IIndexBackup _backup;
         private IConfigManager _config;
         private HttpXmlClient client;
-        private const string TestBooruUrl = "https://testbooru.donmai.us/";
-        private const string DanBooruUrl = "https://danbooru.donmai.us/";
+        private const string TestbooruUrl = "https://testbooru.donmai.us/";
+        private const string DanbooruUrl = "https://danbooru.donmai.us/";
         private string urlToUse;
         private int numThreads = 0;
         private const int TagsLimit = 1000;
@@ -28,9 +28,9 @@ namespace LobitaDownloader
         public IndexBuilder(IIndexPersistence persistence, IIndexBackup backup, IConfigManager config)
         {
             #if DEBUG
-                urlToUse = TestBooruUrl;
+                urlToUse = TestbooruUrl;
             #else
-                urlToUse = DanBooruUrl;
+                urlToUse = DanbooruUrl;
             #endif
 
             _persistence = persistence;
@@ -41,7 +41,7 @@ namespace LobitaDownloader
             numThreads = int.Parse(_config.GetItemByName("NumThreads"));
         }
 
-        public void BuildIndex()
+        public void Index()
         {
             int lastId = 0;
             int j = 1;
@@ -115,11 +115,8 @@ namespace LobitaDownloader
             _backup.BackupTagNames(tagLinks.Keys.ToList());
             _backup.BackupSeriesNames(seriesTags.Keys.ToList());
 
-            // Fetch data from external source and write to backup
-            Backup();
-
-            // Persist to database
-            Persist();
+            // Fetch data from external source and save locally
+            Download();
 
             watch.Stop();
 
@@ -129,16 +126,17 @@ namespace LobitaDownloader
             Resources.SystemLogger.Log($"Downloaded {tagLinks.Keys.Count} tags in {timeString} using {numThreads} thread(s).");
         }
 
-        public void Backup()
+        public void Download()
         {
             Console.Clear();
-            Console.WriteLine("Backing up data...");
+            Console.WriteLine("Downloading data...");
 
             int batchSize = int.Parse(_config.GetItemByName("BatchSize"));
 
             while (true)
             {
                 tagLinks = _backup.GetTagIndex(ModificationStatus.UNMODIFIED, batchSize);
+                ClearTagIndex();
 
                 if (tagLinks.Count == 0)
                 {
@@ -152,17 +150,19 @@ namespace LobitaDownloader
                 FetchData();
 
                 Console.Clear();
-                Console.WriteLine("Writing to files...");
+                Console.WriteLine("Writing to backups...");
 
                 _backup.BackupTagLinks(tagLinks);
                 _backup.BackupSeriesTags(seriesTags);
             }
+
+            Persist();
         }
 
         public void Persist()
         {
             Console.Clear();
-            Console.WriteLine("Persisting to database...");
+            Console.WriteLine("Persisting to database from backups...");
 
             tagLinks = _backup.GetTagIndex(ModificationStatus.DONE);
 
@@ -180,6 +180,36 @@ namespace LobitaDownloader
             SwitchDatabase();
         }
 
+        public void Update(List<string> tagNames)
+        {
+            Console.Clear();
+            Console.WriteLine($"Updating tags...");
+
+            _backup.MarkForUpdate(tagNames);
+
+            tagLinks = _backup.GetTagIndex(ModificationStatus.UNMODIFIED);
+            ClearTagIndex();
+
+            if (tagLinks.Count == 0)
+            {
+                Console.WriteLine("Index is complete.");
+
+                return;
+            }
+
+            seriesTags = _backup.GetSeriesIndex();
+
+            FetchData();
+
+            Console.Clear();
+            Console.WriteLine("Writing to backups...");
+
+            _backup.BackupTagLinks(tagLinks);
+            _backup.BackupSeriesTags(seriesTags);
+
+            Persist();
+        }
+
         public void CleanUp()
         {
             Console.Clear();
@@ -188,9 +218,24 @@ namespace LobitaDownloader
             _persistence.CleanSeries();
         }
 
+        private void ClearTagIndex()
+        {
+            foreach (string key in tagLinks.Keys)
+            {
+                tagLinks[key].Clear();
+            }
+        }
+
         private void FetchData()
         {
-            int partitionSize = (int)Math.Round((double)tagLinks.Keys.Count / numThreads);
+            int tagCount = tagLinks.Keys.Count;
+
+            if (tagCount < numThreads)
+            {
+                numThreads = tagCount;
+            }
+
+            int partitionSize = (int)Math.Round((double)tagCount / numThreads);
             Thread[] threads = new Thread[numThreads];
             Tuple<int, int>[] limits = new Tuple<int, int>[numThreads];
 
@@ -212,7 +257,7 @@ namespace LobitaDownloader
 
             foreach (var l in limits)
             {
-                threads[j] = new Thread(() => GetLinks(tagLinks.Keys.ToList().GetRange(l.Item1, l.Item2 - l.Item1)));
+                threads[j] = new Thread(() => GetLinks(tagLinks.Keys.ToList().GetRange(l.Item1, (l.Item2 - l.Item1) + 1)));
                 threads[j].Name = j.ToString();
                 threads[j].Start();
 
