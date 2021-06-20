@@ -41,35 +41,9 @@ namespace LobitaDownloader.Tests
         }
 
         [TestMethod()]
-        public void DatabasePersistAndQueryTest()
+        public void DatabaseQueryTest()
         {
-            database.CleanTagLinks(); // Clean full
-
-            Assert.IsTrue(TableIsEmpty("links"));
-            Assert.IsTrue(TableIsEmpty("tags"));
-            Assert.IsTrue(TableIsEmpty("tag_links"));
-
-            database.PersistTagLinks(tagLinks);
-
-            Assert.IsFalse(TableIsEmpty("links"));
-            Assert.IsFalse(TableIsEmpty("tags"));
-            Assert.IsFalse(TableIsEmpty("tag_links"));
-
-            List<string> keys = new List<string>();
-
-            foreach (string s in tagLinks.Keys)
-            {
-                if (s.Contains("'"))
-                {
-                    keys.Add(s.Replace("'", "''"));
-                }
-                else
-                {
-                    keys.Add(s);
-                }
-            }
-
-            database.CleanTagLinks(keys); // Clean specified
+            database.CleanTagLinks();
 
             Assert.IsTrue(TableIsEmpty("links"));
             Assert.IsTrue(TableIsEmpty("tags"));
