@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Xml;
 
@@ -39,6 +40,32 @@ namespace LobitaDownloader
             }
         }
 
+        public void MarkForUpdate(List<string> tagNames)
+        {
+            if (tagsDoc == null)
+            {
+                tagsDoc = LoadDocument(TagsFileName);
+            }
+
+            XmlNode tagNode;
+
+            foreach (string tagName in tagNames)
+            {
+                try
+                {
+                    tagNode = tagsDoc.SelectSingleNode("tags").SelectSingleNode("tag[@name=\"" + ReplaceDoubleQuotes(tagName) + "\"]");
+
+                    tagNode.Attributes["status"].Value = ModificationStatus.UNMODIFIED.ToString();
+                }
+                catch (NullReferenceException)
+                {
+                    Console.WriteLine($"{tagName} is not a valid tag.");
+                }
+            }
+
+            tagsDoc.Save(TagsFileName);
+        }
+
         public void BackupTagLinks(IDictionary<string, List<string>> index)
         {
             if (tagsDoc == null)
@@ -53,12 +80,9 @@ namespace LobitaDownloader
             {
                 tagNode = tagsDoc.SelectSingleNode("tags").SelectSingleNode("tag[@name=\"" + ReplaceDoubleQuotes(tagName) + "\"]");
 
-                if (tagNode.HasChildNodes)
+                while (tagNode.HasChildNodes)
                 {
-                    foreach (XmlNode x in tagNode.ChildNodes)
-                    {
-                        tagNode.RemoveChild(x);
-                    }
+                    tagNode.RemoveChild(tagNode.FirstChild);
                 }
 
                 foreach (string link in index[tagName])

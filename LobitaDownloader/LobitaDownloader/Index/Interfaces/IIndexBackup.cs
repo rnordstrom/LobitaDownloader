@@ -4,6 +4,7 @@ namespace LobitaDownloader
 {
     interface IIndexBackup
     {
+        public void MarkForUpdate(List<string> tagNames);
         public void BackupTagLinks(IDictionary<string, List<string>> index);
         public void BackupSeriesTags(IDictionary<string, HashSet<string>> index);
         public void BackupTagNames(List<string> tagNames);

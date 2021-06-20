@@ -58,6 +58,49 @@ namespace LobitaDownloader.Tests
         [TestMethod]
         public void BackupAndReadTest()
         {
+            Backup();
+
+            Dictionary<string, List<string>> readTagLinks
+                = (Dictionary<string, List<string>>)backup.GetTagIndex(ModificationStatus.DONE);
+            Dictionary<string, HashSet<string>> readSeriesTags
+                = (Dictionary<string, HashSet<string>>)backup.GetSeriesIndex();
+
+            CollectionAssert.AreEqual(tagLinks.Keys, readTagLinks.Keys);
+            CollectionAssert.AreEqual(seriesTags.Keys, readSeriesTags.Keys);
+        }
+
+        [TestMethod()]
+        public void IsConnectedTest()
+        {
+            Assert.IsTrue(backup.IsConnected());
+        }
+
+        [TestMethod]
+        public void MarkForUpdateTest()
+        {
+            Backup();
+
+            Dictionary<string, List<string>> readTagLinks
+                = (Dictionary<string, List<string>>)backup.GetTagIndex(ModificationStatus.DONE);
+
+            CollectionAssert.AreEqual(tagLinks.Keys, readTagLinks.Keys);
+
+            List<string> tagNames = new List<string>();
+
+            foreach (string s in tagLinks.Keys)
+            {
+                tagNames.Add(s);
+            }
+
+            backup.MarkForUpdate(tagNames);
+
+            readTagLinks = (Dictionary<string, List<string>>)backup.GetTagIndex(ModificationStatus.UNMODIFIED);
+
+            CollectionAssert.AreEqual(tagLinks.Keys, readTagLinks.Keys);
+        }
+
+        private void Backup()
+        {
             List<string> tagNames = new List<string>();
             List<string> seriesNames = new List<string>();
 
@@ -76,20 +119,6 @@ namespace LobitaDownloader.Tests
 
             backup.BackupTagLinks(tagLinks);
             backup.BackupSeriesTags(seriesTags);
-
-            Dictionary<string, List<string>> readTagLinks
-                = (Dictionary<string, List<string>>)backup.GetTagIndex(ModificationStatus.DONE);
-            Dictionary<string, HashSet<string>> readSeriesTags
-                = (Dictionary<string, HashSet<string>>)backup.GetSeriesIndex();
-
-            CollectionAssert.AreEqual(tagLinks.Keys, readTagLinks.Keys);
-            CollectionAssert.AreEqual(seriesTags.Keys, readSeriesTags.Keys);
-        }
-
-        [TestMethod()]
-        public void IsConnectedTest()
-        {
-            Assert.IsTrue(backup.IsConnected());
         }
     }
 }
