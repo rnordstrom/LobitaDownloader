@@ -76,12 +76,14 @@ namespace LobitaDownloader
 
             XmlNode characterNode;
             XmlElement urlElement;
+            XmlElement seriesElement;
 
             foreach (string characterName in index.Keys)
             {
                 characterNode = charactersDoc.SelectSingleNode("characters").SelectSingleNode("character[@name=\"" + ReplaceDoubleQuotes(characterName) + "\"]");
 
                 characterNode.Attributes["id"].Value = index[characterName].Id.ToString();
+                characterNode.Attributes["post_count"].Value = index[characterName].PostCount.ToString();
 
                 while (characterNode.HasChildNodes)
                 {
@@ -97,41 +99,20 @@ namespace LobitaDownloader
                     characterNode.AppendChild(urlElement);
                 }
 
+                foreach (Series series in index[characterName].Series)
+                {
+                    seriesElement = charactersDoc.CreateElement(string.Empty, "series", string.Empty);
+
+                    seriesElement.SetAttribute("name", ReplaceDoubleQuotes(series.Name));
+                    seriesElement.SetAttribute("id", series.Id.ToString());
+                    seriesElement.SetAttribute("post_count", series.PostCount.ToString());
+                    characterNode.AppendChild(seriesElement);
+                }
+
                 characterNode.Attributes["status"].Value = ModificationStatus.DONE.ToString();
             }
 
             charactersDoc.Save(CharactersFileName);
-        }
-
-        public void BackupSeriesData(IDictionary<string, Series> index)
-        {
-            if (seriesDoc == null)
-            {
-                seriesDoc = LoadDocument(SeriesFileName);
-            }
-
-            XmlNode seriesNode;
-            XmlElement characterElement;
-
-            foreach (string seriesName in index.Keys)
-            {
-                seriesNode = seriesDoc.SelectSingleNode("all_series").SelectSingleNode("series[@name=\"" + ReplaceDoubleQuotes(seriesName) + "\"]");
-
-                foreach (Character character in index[seriesName].Characters)
-                {
-                    if (seriesNode.SelectSingleNode("tag[@name=\"" + ReplaceDoubleQuotes(character.Name) + "\"]") == null)
-                    {
-                        characterElement = seriesDoc.CreateElement(string.Empty, "character", string.Empty);
-
-                        characterElement.SetAttribute("name", ReplaceDoubleQuotes(character.Name));
-                        characterElement.SetAttribute("id", character.Id.ToString());
-                        seriesNode.AppendChild(characterElement);
-
-                    }
-                }
-            }
-            
-            seriesDoc.Save(SeriesFileName);
         }
 
         public void IndexCharacters(IDictionary<string, Character> index)
@@ -157,6 +138,7 @@ namespace LobitaDownloader
 
                 characterElement.SetAttribute("name", ReplaceDoubleQuotes(characterName));
                 characterElement.SetAttribute("id", index[characterName].Id.ToString());
+                characterElement.SetAttribute("post_count", index[characterName].PostCount.ToString());
                 characterElement.SetAttribute("status", ModificationStatus.UNMODIFIED.ToString());
                 charactersElement.AppendChild(characterElement);
             }
@@ -187,6 +169,7 @@ namespace LobitaDownloader
 
                 seriesElement.SetAttribute("name", ReplaceDoubleQuotes(seriesName));
                 seriesElement.SetAttribute("id", index[seriesName].Id.ToString());
+                seriesElement.SetAttribute("post_count", index[seriesName].PostCount.ToString());
                 allSeriesElement.AppendChild(seriesElement);
             }
 
@@ -202,6 +185,7 @@ namespace LobitaDownloader
 
             Dictionary<string, Character> characterIndex = new Dictionary<string, Character>();
             List<Url> tempUrls;
+            List<Series> tempSeries;
             string characterName;
 
             XmlNodeList characterNodes = charactersDoc.SelectSingleNode("characters").SelectNodes("character");
@@ -211,6 +195,8 @@ namespace LobitaDownloader
                 if (character.GetAttribute("status") == status.ToString())
                 {
                     tempUrls = new List<Url>();
+                    tempSeries = new List<Series>();
+                    
                     characterName = character.GetAttribute("name");
 
                     foreach (XmlElement urlTag in character.SelectNodes("url"))
@@ -218,7 +204,20 @@ namespace LobitaDownloader
                         tempUrls.Add(new Url(int.Parse(urlTag.GetAttribute("id")), urlTag.InnerText));
                     }
 
-                    characterIndex.Add(characterName, new Character(int.Parse(character.GetAttribute("id")), characterName, tempUrls));
+                    foreach (XmlElement seriesTag in character.SelectNodes("series"))
+                    {
+                        tempSeries.Add(new Series(
+                            int.Parse(seriesTag.GetAttribute("id")), 
+                            seriesTag.GetAttribute("name"), 
+                            int.Parse(seriesTag.GetAttribute("post_count"))));
+                    }
+
+                    characterIndex.Add(characterName, new Character(
+                        int.Parse(character.GetAttribute("id")), 
+                        characterName, 
+                        int.Parse(character.GetAttribute("post_count")), 
+                        tempSeries, 
+                        tempUrls));
                 }
 
                 if (batchSize > 0 && characterIndex.Count == batchSize)
@@ -238,7 +237,6 @@ namespace LobitaDownloader
             }
 
             Dictionary<string, Series> seriesIndex = new Dictionary<string, Series>();
-            List<Character> characters;
 
             seriesDoc.Load(SeriesFileName);
 
@@ -247,15 +245,12 @@ namespace LobitaDownloader
 
             foreach (XmlElement seriesNode in seriesNodes)
             {
-                characters = new List<Character>();
                 seriesName = seriesNode.GetAttribute("name");
 
-                foreach (XmlElement characterTag in seriesNode.SelectNodes("character"))
-                {
-                    characters.Add(new Character(int.Parse(characterTag.GetAttribute("id")), characterTag.GetAttribute("name"), new List<Url>()));
-                }
-
-                seriesIndex.Add(seriesName, new Series(int.Parse(seriesNode.GetAttribute("id")), seriesName, characters));
+                seriesIndex.Add(seriesName, new Series(
+                    int.Parse(seriesNode.GetAttribute("id")), 
+                    seriesName, 
+                    int.Parse(seriesNode.GetAttribute("post_count"))));
             }
 
             return seriesIndex;

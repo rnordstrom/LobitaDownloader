@@ -8,8 +8,8 @@ namespace LobitaDownloader.Tests
     public class XmlIndexBackupTests
     {
         private XmlIndexBackup backup;
-        private Dictionary<string, Character> characters = new Dictionary<string, Character>();
-        private Dictionary<string, Series> series = new Dictionary<string, Series>();
+        private Dictionary<string, Character> characterIndex = new Dictionary<string, Character>();
+        private Dictionary<string, Series> seriesIndex = new Dictionary<string, Series>();
         string tag1 = "gawr_gura";
         string tag2 = "ninomae_ina'nis";
         string seriesName = "hololive";
@@ -29,32 +29,33 @@ namespace LobitaDownloader.Tests
             List<Url> urlList1 = new List<Url>() { url1, url2, url3 };
             List<Url> urlList2 = new List<Url>() { url4, url5 };
 
-            Character character1 = new Character(1, tag1, urlList1);
-            Character character2 = new Character(2, tag2, urlList2);
+            Series series1 = new Series(1, seriesName, urlList1.Count + urlList2.Count);
 
-            List<Character> characters = new List<Character>() { character1, character2 };
+            List<Series> seriesList1 = new List<Series>() { series1 };
 
-            this.characters.Add(tag1, character1);
-            this.characters.Add(tag2, character2);
+            Character character1 = new Character(1, tag1, urlList1.Count, seriesList1, urlList1);
+            Character character2 = new Character(2, tag2, urlList2.Count, seriesList1, urlList2);
 
-            Series series1 = new Series(1, seriesName, characters);
+            characterIndex.Add(tag1, character1);
+            characterIndex.Add(tag2, character2);
 
-            series.Add(seriesName, series1);
+
+            seriesIndex.Add(seriesName, series1);
         }
 
         [TestMethod]
         public void BackupNamesAndReadTest()
         {
-            backup.IndexCharacters(characters);
-            backup.IndexSeries(series);
+            backup.IndexCharacters(characterIndex);
+            backup.IndexSeries(seriesIndex);
 
             Dictionary<string, Character> readCharacters
                 = (Dictionary<string, Character>)backup.GetCharacterIndex(ModificationStatus.UNMODIFIED);
             Dictionary<string, Series> readSeries
                 = (Dictionary<string, Series>)backup.GetSeriesIndex();
 
-            CollectionAssert.AreEqual(characters.Keys, readCharacters.Keys);
-            CollectionAssert.AreEqual(series.Keys, readSeries.Keys);
+            CollectionAssert.AreEqual(characterIndex.Keys, readCharacters.Keys);
+            CollectionAssert.AreEqual(seriesIndex.Keys, readSeries.Keys);
             Assert.IsTrue(readCharacters.Values.Count > 0);
             Assert.IsTrue(readSeries.Values.Count > 0);
         }
@@ -69,8 +70,17 @@ namespace LobitaDownloader.Tests
             Dictionary<string, Series> readSeries
                 = (Dictionary<string, Series>)backup.GetSeriesIndex();
 
-            CollectionAssert.AreEqual(characters.Keys, readCharacters.Keys);
-            CollectionAssert.AreEqual(series.Keys, readSeries.Keys);
+            CollectionAssert.AreEqual(characterIndex.Keys, readCharacters.Keys);
+            CollectionAssert.AreEqual(seriesIndex.Keys, readSeries.Keys);
+
+            Assert.AreEqual(characterIndex[tag1].Id, readCharacters[tag1].Id);
+            Assert.AreEqual(characterIndex[tag2].Id, readCharacters[tag2].Id);
+
+            Assert.AreEqual(characterIndex[tag1].Name, readCharacters[tag1].Name);
+            Assert.AreEqual(characterIndex[tag2].Name, readCharacters[tag2].Name);
+
+            Assert.AreEqual(characterIndex[tag1].PostCount, readCharacters[tag1].PostCount);
+            Assert.AreEqual(characterIndex[tag2].PostCount, readCharacters[tag2].PostCount);
         }
 
         [TestMethod()]
@@ -87,11 +97,11 @@ namespace LobitaDownloader.Tests
             Dictionary<string, Character> readCharacters
                 = (Dictionary<string, Character>)backup.GetCharacterIndex(ModificationStatus.DONE);
 
-            CollectionAssert.AreEqual(characters.Keys, readCharacters.Keys);
+            CollectionAssert.AreEqual(characterIndex.Keys, readCharacters.Keys);
 
             List<string> tagNames = new List<string>();
 
-            foreach (string s in characters.Keys)
+            foreach (string s in characterIndex.Keys)
             {
                 tagNames.Add(s);
             }
@@ -100,16 +110,15 @@ namespace LobitaDownloader.Tests
 
             readCharacters = (Dictionary<string, Character>)backup.GetCharacterIndex(ModificationStatus.UNMODIFIED);
 
-            CollectionAssert.AreEqual(characters.Keys, readCharacters.Keys);
+            CollectionAssert.AreEqual(characterIndex.Keys, readCharacters.Keys);
         }
 
         private void Backup()
         {
-            backup.IndexCharacters(characters);
-            backup.IndexSeries(series);
+            backup.IndexCharacters(characterIndex);
+            backup.IndexSeries(seriesIndex);
 
-            backup.BackupCharacterData(characters);
-            backup.BackupSeriesData(series);
+            backup.BackupCharacterData(characterIndex);
         }
     }
 }

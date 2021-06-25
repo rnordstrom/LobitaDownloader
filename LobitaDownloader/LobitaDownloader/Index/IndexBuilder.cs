@@ -72,7 +72,7 @@ namespace LobitaDownloader
 
                     if (!tagName.Contains("#"))
                     {
-                        characterIndex.TryAdd(tagName, new Character(id, tagName, new List<Url>()));
+                        characterIndex.TryAdd(tagName, new Character(id, tagName, 0, new List<Series>(), new List<Url>()));
 
                         output = $"Fetching character tags ({j++}).";
                         PrintUtils.PrintRow(output, 0, 0);
@@ -107,7 +107,7 @@ namespace LobitaDownloader
 
                     if (!seriesName.Contains("#"))
                     {
-                        seriesIndex.TryAdd(seriesName, new Series(id, seriesName, new List<Character>()));
+                        seriesIndex.TryAdd(seriesName, new Series(id, seriesName, 0));
 
                         output = $"Fetching series tags ({j++}).";
                         PrintUtils.PrintRow(output, 0, 0);
@@ -163,7 +163,6 @@ namespace LobitaDownloader
                 Console.WriteLine("Writing to backups...");
 
                 _backup.BackupCharacterData(characterIndex);
-                _backup.BackupSeriesData(seriesIndex);
             }
 
             Persist();
@@ -176,16 +175,8 @@ namespace LobitaDownloader
 
             characterIndex = _backup.GetCharacterIndex(ModificationStatus.DONE);
 
-            _persistence.CleanCharacters();
+            _persistence.Clean();
             _persistence.PersistCharacters(characterIndex);
-
-            seriesIndex = _backup.GetSeriesIndex();
-
-            _persistence.CleanSeries();
-            _persistence.PersistSeries(seriesIndex);
-
-            _persistence.CountCharacterPosts(characterIndex);
-            _persistence.CountSeriesPosts(seriesIndex, characterIndex);
 
             SwitchDatabase();
         }
@@ -215,7 +206,6 @@ namespace LobitaDownloader
             Console.WriteLine("Writing to backups...");
 
             _backup.BackupCharacterData(characterIndex);
-            _backup.BackupSeriesData(seriesIndex);
 
             Persist();
         }
@@ -224,8 +214,7 @@ namespace LobitaDownloader
         {
             Console.Clear();
 
-            _persistence.CleanCharacters();
-            _persistence.CleanSeries();
+            _persistence.Clean();
         }
 
         private void ClearTagIndex()
@@ -284,7 +273,7 @@ namespace LobitaDownloader
         {
             int j = 1;
             int backoffSeconds;
-            string tagName;
+            string characterName;
             string output;
             string path;
             XmlElement postRoot;
@@ -298,24 +287,24 @@ namespace LobitaDownloader
 
             for (int i = 0; i < tagNames.Count; i++)
             {
-                tagName = tagNames.ElementAt(i);
+                characterName = tagNames.ElementAt(i);
                 
                 while (true)
                 {
                     try
                     {
                         backoffSeconds = 10;
-                        output = $"Thread {threadId}: processing tag '{tagName}' ({i + 1} / {tagNames.Count}; page #{j}).";
+                        output = $"Thread {threadId}: processing tag '{characterName}' ({i + 1} / {tagNames.Count}; page #{j}).";
 
                         PrintUtils.PrintRow(output, 0, threadId);
 
-                        path = urlToUse + $"posts.xml?tags={tagName} rating:safe&limit={PostsLimit}&page={j}&only=id,file_url,tag_string_copyright";
+                        path = urlToUse + $"posts.xml?tags={characterName} rating:safe&limit={PostsLimit}&page={j}&only=id,file_url,tag_string_copyright";
                         postRoot = client.GetPosts(path).Result;
 
                         // Keep trying to fetch a page of posts if the first request fails. Wait for a doubling backoff-period.
                         while (postRoot == null && backoffSeconds <= BackoffLimitSeconds)
                         {
-                            output = $"Thread {threadId} (Stalled; backoff: {backoffSeconds}), processing tag '{tagName}' ({i + 1} / {tagNames.Count}; page #{j}).";
+                            output = $"Thread {threadId} (Stalled; backoff: {backoffSeconds}), processing tag '{characterName}' ({i + 1} / {tagNames.Count}; page #{j}).";
 
                             PrintUtils.PrintRow(output, 0, threadId);
                             Thread.Sleep(backoffSeconds * 1000);
@@ -341,7 +330,8 @@ namespace LobitaDownloader
                             // If there is no file url, simply skip the post
                             if (fileNode != null)
                             {
-                                characterIndex[tagName].Urls.Add(new Url(int.Parse(idNode.InnerText), fileNode.InnerText));
+                                characterIndex[characterName].Urls.Add(new Url(int.Parse(idNode.InnerText), fileNode.InnerText));
+                                characterIndex[characterName].PostCount++;
                             }
 
                             if (seriesNode != null)
@@ -365,7 +355,7 @@ namespace LobitaDownloader
                     }
                     catch (NullReferenceException e) // Skip the page and try fetching the next page
                     {
-                        Resources.SystemLogger.Log($"Failed to retrieve page {j} for tag {tagName}." + Environment.NewLine + e.StackTrace);
+                        Resources.SystemLogger.Log($"Failed to retrieve page {j} for tag {characterName}." + Environment.NewLine + e.StackTrace);
                     }
 
                     j++;
@@ -373,10 +363,10 @@ namespace LobitaDownloader
 
                 topSeries = IndexUtils.GetTopSeries(ref tagOccurrences, SeriesLimit);
 
-                // Add to the indices
                 foreach (string seriesName in topSeries)
                 {
-                    seriesIndex[seriesName].Characters.Add(characterIndex[tagName]);
+                    characterIndex[characterName].Series.Add(seriesIndex[seriesName]);
+                    seriesIndex[seriesName].PostCount += characterIndex[characterName].PostCount;
                 }
 
                 j = 1;

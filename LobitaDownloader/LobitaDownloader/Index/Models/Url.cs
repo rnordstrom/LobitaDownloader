@@ -1,6 +1,8 @@
-﻿namespace LobitaDownloader.Index.Models
+﻿using LobitaDownloader.Index.Interfaces;
+
+namespace LobitaDownloader.Index.Models
 {
-    public class Url : ModelObject
+    public class Url : ModelBase, Model
     {
         public string Link { get; set; }
 
@@ -8,6 +10,16 @@
         {
             Id = id;
             Link = link;
+        }
+
+        public string GetName()
+        {
+            return Link;
+        }
+
+        public int GetCount()
+        {
+            throw new System.NotImplementedException();
         }
     }
 }

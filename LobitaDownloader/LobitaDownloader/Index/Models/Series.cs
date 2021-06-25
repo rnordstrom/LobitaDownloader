@@ -1,17 +1,27 @@
-﻿using System.Collections.Generic;
+﻿using LobitaDownloader.Index.Interfaces;
 
 namespace LobitaDownloader.Index.Models
 {
-    public class Series : ModelObject
+    public class Series : ModelBase, Model
     {
         public string Name { get; set; }
-        public ICollection<Character> Characters { get; set; }
+        public int PostCount { get; set; }
 
-        public Series(int id, string name, ICollection<Character> characters)
+        public Series(int id, string name, int postCount)
         {
             Id = id;
             Name = name;
-            Characters = characters;
+            PostCount = postCount;
+        }
+
+        public string GetName()
+        {
+            return Name;
+        }
+
+        public int GetCount()
+        {
+            return PostCount;
         }
     }
 }
