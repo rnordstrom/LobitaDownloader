@@ -1,4 +1,5 @@
-﻿using System;
+﻿using LobitaDownloader.Index.Models;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Xml;
@@ -8,21 +9,21 @@ namespace LobitaDownloader
     public class XmlIndexBackup : IIndexBackup
     {
         private string _backupLocation;
-        public string TagsFileName { get; set; }
+        public string CharactersFileName { get; set; }
         public string SeriesFileName { get; set; }
-        private XmlDocument tagsDoc = null;
+        private XmlDocument charactersDoc = null;
         private XmlDocument seriesDoc = null;
 
         public XmlIndexBackup(IConfigManager config)
         {
             _backupLocation = config.GetItemByName("BackupLocation");
-            TagsFileName = Path.Join(_backupLocation, "tags.xml");
+            CharactersFileName = Path.Join(_backupLocation, "characters.xml");
             SeriesFileName = Path.Join(_backupLocation, "series.xml");
         }
         
         private void CleanTagLinks()
         {
-            FileInfo tagsFileInfo = new FileInfo(TagsFileName);
+            FileInfo tagsFileInfo = new FileInfo(CharactersFileName);
 
             if (tagsFileInfo.Exists)
             {
@@ -40,66 +41,69 @@ namespace LobitaDownloader
             }
         }
 
-        public void MarkForUpdate(List<string> tagNames)
+        public void MarkForUpdate(List<string> characterNames)
         {
-            if (tagsDoc == null)
+            if (charactersDoc == null)
             {
-                tagsDoc = LoadDocument(TagsFileName);
+                charactersDoc = LoadDocument(CharactersFileName);
             }
 
-            XmlNode tagNode;
+            XmlNode characterNode;
 
-            foreach (string tagName in tagNames)
+            foreach (string characterName in characterNames)
             {
                 try
                 {
-                    tagNode = tagsDoc.SelectSingleNode("tags").SelectSingleNode("tag[@name=\"" + ReplaceDoubleQuotes(tagName) + "\"]");
+                    characterNode = charactersDoc.SelectSingleNode("characters").SelectSingleNode("character[@name=\"" + ReplaceDoubleQuotes(characterName) + "\"]");
 
-                    tagNode.Attributes["status"].Value = ModificationStatus.UNMODIFIED.ToString();
+                    characterNode.Attributes["status"].Value = ModificationStatus.UNMODIFIED.ToString();
                 }
                 catch (NullReferenceException)
                 {
-                    Console.WriteLine($"{tagName} is not a valid tag.");
+                    Console.WriteLine($"{characterName} is not a valid tag.");
                 }
             }
 
-            tagsDoc.Save(TagsFileName);
+            charactersDoc.Save(CharactersFileName);
         }
 
-        public void BackupTagLinks(IDictionary<string, List<string>> index)
+        public void BackupCharacterData(IDictionary<string, Character> index)
         {
-            if (tagsDoc == null)
+            if (charactersDoc == null)
             {
-                tagsDoc = LoadDocument(TagsFileName);
+                charactersDoc = LoadDocument(CharactersFileName);
             }
 
-            XmlNode tagNode;
-            XmlElement linkElement;
+            XmlNode characterNode;
+            XmlElement urlElement;
 
-            foreach (string tagName in index.Keys)
+            foreach (string characterName in index.Keys)
             {
-                tagNode = tagsDoc.SelectSingleNode("tags").SelectSingleNode("tag[@name=\"" + ReplaceDoubleQuotes(tagName) + "\"]");
+                characterNode = charactersDoc.SelectSingleNode("characters").SelectSingleNode("character[@name=\"" + ReplaceDoubleQuotes(characterName) + "\"]");
 
-                while (tagNode.HasChildNodes)
+                characterNode.Attributes["id"].Value = index[characterName].Id.ToString();
+
+                while (characterNode.HasChildNodes)
                 {
-                    tagNode.RemoveChild(tagNode.FirstChild);
+                    characterNode.RemoveChild(characterNode.FirstChild);
                 }
 
-                foreach (string link in index[tagName])
+                foreach (Url url in index[characterName].Urls)
                 {
-                    linkElement = tagsDoc.CreateElement(string.Empty, "url", string.Empty);
+                    urlElement = charactersDoc.CreateElement(string.Empty, "url", string.Empty);
 
-                    linkElement.AppendChild(tagsDoc.CreateTextNode(link));
-                    tagNode.AppendChild(linkElement);
+                    urlElement.AppendChild(charactersDoc.CreateTextNode(url.Link));
+                    urlElement.SetAttribute("id", url.Id.ToString());
+                    characterNode.AppendChild(urlElement);
                 }
 
-                tagNode.Attributes["status"].Value = ModificationStatus.DONE.ToString();
+                characterNode.Attributes["status"].Value = ModificationStatus.DONE.ToString();
             }
 
-            tagsDoc.Save(TagsFileName);
+            charactersDoc.Save(CharactersFileName);
         }
 
-        public void BackupSeriesTags(IDictionary<string, HashSet<string>> index)
+        public void BackupSeriesData(IDictionary<string, Series> index)
         {
             if (seriesDoc == null)
             {
@@ -107,20 +111,21 @@ namespace LobitaDownloader
             }
 
             XmlNode seriesNode;
-            XmlElement tagElement;
+            XmlElement characterElement;
 
             foreach (string seriesName in index.Keys)
             {
                 seriesNode = seriesDoc.SelectSingleNode("all_series").SelectSingleNode("series[@name=\"" + ReplaceDoubleQuotes(seriesName) + "\"]");
 
-                foreach (string tagName in index[seriesName])
+                foreach (Character character in index[seriesName].Characters)
                 {
-                    if (seriesNode.SelectSingleNode("tag[@name=\"" + ReplaceDoubleQuotes(tagName) + "\"]") == null)
+                    if (seriesNode.SelectSingleNode("tag[@name=\"" + ReplaceDoubleQuotes(character.Name) + "\"]") == null)
                     {
-                        tagElement = seriesDoc.CreateElement(string.Empty, "tag", string.Empty);
+                        characterElement = seriesDoc.CreateElement(string.Empty, "character", string.Empty);
 
-                        tagElement.SetAttribute("name", ReplaceDoubleQuotes(tagName));
-                        seriesNode.AppendChild(tagElement);
+                        characterElement.SetAttribute("name", ReplaceDoubleQuotes(character.Name));
+                        characterElement.SetAttribute("id", character.Id.ToString());
+                        seriesNode.AppendChild(characterElement);
 
                     }
                 }
@@ -129,36 +134,37 @@ namespace LobitaDownloader
             seriesDoc.Save(SeriesFileName);
         }
 
-        public void BackupTagNames(List<string> tagNames)
+        public void IndexCharacters(IDictionary<string, Character> index)
         {
             CleanTagLinks();
 
-            tagsDoc = InitializeDocument();
+            charactersDoc = InitializeDocument();
 
-            XmlElement tagsElement = tagsDoc.CreateElement(string.Empty, "tags", string.Empty);
-            XmlElement tagElement;
+            XmlElement charactersElement = charactersDoc.CreateElement(string.Empty, "characters", string.Empty);
+            XmlElement characterElement;
 
-            tagsDoc.AppendChild(tagsElement);
+            charactersDoc.AppendChild(charactersElement);
 
             int i = 1;
             string output;
 
-            foreach (string tagName in tagNames)
+            foreach (string characterName in index.Keys)
             {
                 output = $"Backing up tag ({i++}).";
                 PrintUtils.PrintRow(output, 0, 0);
 
-                tagElement = tagsDoc.CreateElement(string.Empty, "tag", string.Empty);
+                characterElement = charactersDoc.CreateElement(string.Empty, "character", string.Empty);
 
-                tagElement.SetAttribute("name", ReplaceDoubleQuotes(tagName));
-                tagElement.SetAttribute("status", ModificationStatus.UNMODIFIED.ToString());
-                tagsElement.AppendChild(tagElement);
+                characterElement.SetAttribute("name", ReplaceDoubleQuotes(characterName));
+                characterElement.SetAttribute("id", index[characterName].Id.ToString());
+                characterElement.SetAttribute("status", ModificationStatus.UNMODIFIED.ToString());
+                charactersElement.AppendChild(characterElement);
             }
 
-            tagsDoc.Save(TagsFileName);
+            charactersDoc.Save(CharactersFileName);
         }
 
-        public void BackupSeriesNames(List<string> seriesNames)
+        public void IndexSeries(IDictionary<string, Series> index)
         {
             CleanSeries();
 
@@ -172,7 +178,7 @@ namespace LobitaDownloader
             int i = 1;
             string output;
 
-            foreach (string seriesName in seriesNames)
+            foreach (string seriesName in index.Keys)
             {
                 output = $"Backing up series ({i++}).";
                 PrintUtils.PrintRow(output, 0, 0);
@@ -180,74 +186,79 @@ namespace LobitaDownloader
                 seriesElement = seriesDoc.CreateElement(string.Empty, "series", string.Empty);
 
                 seriesElement.SetAttribute("name", ReplaceDoubleQuotes(seriesName));
+                seriesElement.SetAttribute("id", index[seriesName].Id.ToString());
                 allSeriesElement.AppendChild(seriesElement);
             }
 
             seriesDoc.Save(SeriesFileName);
         }
 
-        public IDictionary<string, List<string>> GetTagIndex(ModificationStatus status, int batchSize = -1)
+        public IDictionary<string, Character> GetCharacterIndex(ModificationStatus status, int batchSize = -1)
         {
-            if (tagsDoc == null)
+            if (charactersDoc == null)
             {
-                tagsDoc = LoadDocument(TagsFileName);
+                charactersDoc = LoadDocument(CharactersFileName);
             }
 
-            Dictionary<string, List<string>> tagLinks = new Dictionary<string, List<string>>();
-            List<string> links;
+            Dictionary<string, Character> characterIndex = new Dictionary<string, Character>();
+            List<Url> tempUrls;
+            string characterName;
 
-            XmlNodeList tagNodes = tagsDoc.SelectSingleNode("tags").SelectNodes("tag");
+            XmlNodeList characterNodes = charactersDoc.SelectSingleNode("characters").SelectNodes("character");
 
-            foreach (XmlElement tag in tagNodes)
+            foreach (XmlElement character in characterNodes)
             {
-                if (tag.GetAttribute("status") == status.ToString())
+                if (character.GetAttribute("status") == status.ToString())
                 {
-                    links = new List<string>();
+                    tempUrls = new List<Url>();
+                    characterName = character.GetAttribute("name");
 
-                    foreach (XmlElement link in tag.SelectNodes("url"))
+                    foreach (XmlElement urlTag in character.SelectNodes("url"))
                     {
-                        links.Add(link.InnerText);
+                        tempUrls.Add(new Url(int.Parse(urlTag.GetAttribute("id")), urlTag.InnerText));
                     }
 
-                    tagLinks.Add(tag.GetAttribute("name"), links);
+                    characterIndex.Add(characterName, new Character(int.Parse(character.GetAttribute("id")), characterName, tempUrls));
                 }
 
-                if (batchSize > 0 && tagLinks.Count == batchSize)
+                if (batchSize > 0 && characterIndex.Count == batchSize)
                 {
                     break;
                 }
             }
 
-            return tagLinks;
+            return characterIndex;
         }
 
-        public IDictionary<string, HashSet<string>> GetSeriesIndex()
+        public IDictionary<string, Series> GetSeriesIndex()
         {
             if (seriesDoc == null)
             {
                 seriesDoc = LoadDocument(SeriesFileName);
             }
 
-            Dictionary<string, HashSet<string>> seriesTags = new Dictionary<string, HashSet<string>>();
-            HashSet<string> tags;
+            Dictionary<string, Series> seriesIndex = new Dictionary<string, Series>();
+            List<Character> characters;
 
             seriesDoc.Load(SeriesFileName);
 
             XmlNodeList seriesNodes = seriesDoc.SelectSingleNode("all_series").SelectNodes("series");
+            string seriesName;
 
-            foreach (XmlElement series in seriesNodes)
+            foreach (XmlElement seriesNode in seriesNodes)
             {
-                tags = new HashSet<string>();
+                characters = new List<Character>();
+                seriesName = seriesNode.GetAttribute("name");
 
-                foreach (XmlElement tag in series.SelectNodes("tag"))
+                foreach (XmlElement characterTag in seriesNode.SelectNodes("character"))
                 {
-                    tags.Add(tag.GetAttribute("name"));
+                    characters.Add(new Character(int.Parse(characterTag.GetAttribute("id")), characterTag.GetAttribute("name"), new List<Url>()));
                 }
 
-                seriesTags.Add(series.GetAttribute("name"), tags);
+                seriesIndex.Add(seriesName, new Series(int.Parse(seriesNode.GetAttribute("id")), seriesName, characters));
             }
 
-            return seriesTags;
+            return seriesIndex;
         }
 
         public bool IsConnected()

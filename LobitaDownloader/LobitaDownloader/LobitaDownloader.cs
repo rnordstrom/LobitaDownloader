@@ -86,7 +86,7 @@ namespace LobitaDownloader
     {
         static int Main(string[] args)
         {
-            string usageString = "Usage: LobitaDownloader index | download | persist | update [tagname...] | clean";
+            string usageString = "Usage: LobitaDownloader index <tag_count> | download | persist | update [tagname...] | clean";
 
             try
             {
@@ -102,7 +102,12 @@ namespace LobitaDownloader
                     case "index":
                         if (CheckConnections(persistence, backup))
                         {
-                            indexBuilder.Index();
+                            int tagCount = 0;
+                            if (args.Length >= 2)
+                            {
+                                tagCount = int.Parse(args[1]);
+                            }
+                            indexBuilder.Index(tagCount);
                         }
                         else
                         {

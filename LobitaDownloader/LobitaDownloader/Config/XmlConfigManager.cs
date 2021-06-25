@@ -16,37 +16,6 @@ namespace LobitaDownloader
             doc.Load(_fileName);
         }
 
-        public AutoMode CheckAutoMode(string cmdHandle)
-        {
-            XmlNode root = doc.SelectSingleNode("commands");
-            XmlNodeList commands = root.SelectNodes("command");
-            string docHandle;
-            string mode = "";
-
-            foreach (XmlElement e in commands)
-            {
-                docHandle = e.SelectSingleNode("handle").InnerText;
-
-                if (docHandle == cmdHandle)
-                {
-                    mode = e.SelectSingleNode("automode").InnerText;
-                }
-            }
-
-            if (mode == "AUTO")
-            {
-                return AutoMode.AUTO;
-            }
-            else if (mode == "MANUAL")
-            {
-                return AutoMode.MANUAL;
-            }
-            else
-            {
-                return AutoMode.INDETERMINATE;
-            }
-        }
-
         public string GetItemByName(string name)
         {
             XmlNode root = doc.SelectSingleNode("items");

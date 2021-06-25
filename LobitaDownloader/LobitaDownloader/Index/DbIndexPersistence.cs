@@ -1,4 +1,5 @@
-﻿using MySql.Data.MySqlClient;
+﻿using LobitaDownloader.Index.Models;
+using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -29,7 +30,7 @@ namespace LobitaDownloader
             TimeOut = int.Parse(config.GetItemByName("TimeOut"));
         }
 
-        public void CleanTagLinks()
+        public void CleanCharacters()
         {
             Clean("tags", "id");
             Clean("links", "id");
@@ -107,7 +108,7 @@ namespace LobitaDownloader
             conn.Close();
         }
 
-        public void CountTagLinks()
+        public void CountCharacters()
         {
             string getTagLinksCount =
                 $"SELECT t.id, COUNT(l.id) " +
@@ -118,7 +119,7 @@ namespace LobitaDownloader
             CountPosts("tags", "id", "post_count", getTagLinksCount);
         }
 
-        public void CountSeriesLinks()
+        public void CountSeries()
         {
             string getSeriesLinksCount =
                 $"SELECT s.id, COUNT(l.id) " +
@@ -129,7 +130,7 @@ namespace LobitaDownloader
             CountPosts("series", "id", "post_count", getSeriesLinksCount);
         }
 
-        private void CountPosts(string tableName, string idColumn, string countColumn, string countQuery)
+        private void CountPosts(string tableName, string idColumn, string countColumn, string countQuery) // TODO: Perform these calculations based on in-memory content instead
         {
             try
             {
@@ -216,49 +217,34 @@ namespace LobitaDownloader
             conn.Close();
         }
 
-        public void PersistTagLinks(IDictionary<string, List<string>> index)
+        public void PersistCharacters(IDictionary<string, Character> index)
         {
             int i = 1;
             string output;
             MySqlCommand cmd;
-            MySqlDataReader rdr;
             MySqlTransaction transaction = null;
+            Dictionary<int, string> characterIds = new Dictionary<int, string>();
+            Dictionary<int, string> urlIds = new Dictionary<int, string>();
 
-            PersistColumnBatch(index.Keys.ToList(), "tags", "name");
-            PersistColumnBatch(ToUniqueSet(index.Values.ToList()), "links", "url");
+            foreach (string characterName in index.Keys)
+            {
+                characterIds.Add(index[characterName].Id, characterName);
 
-            Dictionary<string, int> tagDict = new Dictionary<string, int>();
-            Dictionary<string, int> linkDict = new Dictionary<string, int>();
-            string queryTags = "SELECT name, id FROM tags";
-            string queryLinks = "SELECT url, id FROM links";
+                foreach (Url url in index[characterName].Urls)
+                {
+                    if (!urlIds.ContainsKey(url.Id))
+                    {
+                        urlIds.Add(url.Id, url.Link);
+                    }
+                }
+            }
 
-            output = $"Preparing ID dictionaries.";
-
-            PrintUtils.PrintRow(output, 0, 0);
+            PersistColumnBatch(characterIds, "tags", "id", "name");
+            PersistColumnBatch(urlIds, "links", "id", "url");
 
             try
             {
                 conn.Open();
-
-                cmd = new MySqlCommand(queryTags, conn);
-                rdr = cmd.ExecuteReader();
-
-                while (rdr.Read())
-                {
-                    tagDict.Add((string)rdr[0], (int)rdr[1]);
-                }
-
-                rdr.Close();
-
-                cmd = new MySqlCommand(queryLinks, conn);
-                rdr = cmd.ExecuteReader();
-
-                while (rdr.Read())
-                {
-                    linkDict.Add((string)rdr[0], (int)rdr[1]);
-                }
-
-                rdr.Close();
 
                 StringBuilder insertTagLinks = new StringBuilder("INSERT INTO tag_links(tag_id, link_id) VALUES");
                 int j = 0;
@@ -266,18 +252,18 @@ namespace LobitaDownloader
 
                 transaction = conn.BeginTransaction();
 
-                foreach (string tagName in index.Keys)
+                foreach (string characterName in index.Keys)
                 {
-                    int tagId = tagDict[tagName];
+                    int characterId = index[characterName].Id;
                     output = $"Writing tag ({i++} / {index.Keys.Count}).";
 
                     PrintUtils.PrintRow(output, 0, 0);
 
-                    foreach (string link in index[tagName])
+                    foreach (Url url in index[characterName].Urls)
                     {
-                        int linkId = linkDict[link];
+                        int urlId = url.Id;
 
-                        insertTagLinks.Append($"('{tagId}', {linkId}),");
+                        insertTagLinks.Append($"('{characterId}', {urlId}),");
 
                         j++;
                     }
@@ -315,48 +301,24 @@ namespace LobitaDownloader
             conn.Close();
         }
 
-        public void PersistSeriesTags(IDictionary<string, HashSet<string>> index)
+        public void PersistSeries(IDictionary<string, Series> index)
         {
             int i = 1;
             string output;
             MySqlCommand cmd;
-            MySqlDataReader rdr;
             MySqlTransaction transaction = null;
+            Dictionary<int, string> seriesIds = new Dictionary<int, string>();
 
-            PersistColumnBatch(index.Keys.ToList(), "series", "name");
+            foreach (string seriesName in index.Keys)
+            {
+                seriesIds.Add(index[seriesName].Id, seriesName);
+            }
 
-            Dictionary<string, int> seriesDict = new Dictionary<string, int>();
-            Dictionary<string, int> tagDict = new Dictionary<string, int>();
-            string querySeries = "SELECT name, id FROM series";
-            string queryTags = "SELECT name, id FROM tags";
-
-            output = $"Preparing ID dictionaries.";
-
-            PrintUtils.PrintRow(output, 0, 0);
+            PersistColumnBatch(seriesIds, "series", "id", "name");
 
             try
             {
                 conn.Open();
-
-                cmd = new MySqlCommand(queryTags, conn);
-                rdr = cmd.ExecuteReader();
-
-                while (rdr.Read())
-                {
-                    tagDict.Add((string)rdr[0], (int)rdr[1]);
-                }
-
-                rdr.Close();
-
-                cmd = new MySqlCommand(querySeries, conn);
-                rdr = cmd.ExecuteReader();
-
-                while (rdr.Read())
-                {
-                    seriesDict.Add((string)rdr[0], (int)rdr[1]);
-                }
-
-                rdr.Close();
 
                 StringBuilder insertSeriesTags = new StringBuilder("INSERT INTO series_tags(tag_id, series_id) VALUES");
                 int j = 0;
@@ -366,16 +328,16 @@ namespace LobitaDownloader
 
                 foreach (string seriesName in index.Keys)
                 {
-                    int seriesId = seriesDict[seriesName];
+                    int seriesId = index[seriesName].Id;
                     output = $"Writing series ({i++} / {index.Keys.Count}).";
 
                     PrintUtils.PrintRow(output, 0, 0);
 
-                    foreach (string tagName in index[seriesName])
+                    foreach (Character character in index[seriesName].Characters)
                     {
-                        int tagId = tagDict[tagName];
+                        int characterId = character.Id;
 
-                        insertSeriesTags.Append($"({tagId}, {seriesId}),");
+                        insertSeriesTags.Append($"({characterId}, {seriesId}),");
 
                         j++;
                     }
@@ -413,12 +375,12 @@ namespace LobitaDownloader
             conn.Close();
         }
 
-        private void PersistColumnBatch(ICollection<string> values, string tableName, string columnName)
+        private void PersistColumnBatch(IDictionary<int, string> values, string tableName, string idColumn, string nameColumn)
         {
             string replacedName;
             string output;
             MySqlCommand cmd;
-            StringBuilder insertValues = new StringBuilder($"INSERT INTO {tableName}({columnName}) VALUES");
+            StringBuilder insertValues = new StringBuilder($"INSERT INTO {tableName}({idColumn}, {nameColumn}) VALUES");
             int i = 1;
             int j = 0;
 
@@ -427,14 +389,14 @@ namespace LobitaDownloader
                 conn.Open();
                 MySqlTransaction transaction = conn.BeginTransaction();
 
-                foreach (string s in values)
+                foreach (int id in values.Keys)
                 {
-                    output = $"Writing value to column {tableName}.{columnName} ({i++} / {values.Count}).";
+                    output = $"Writing values to columns {tableName}.{idColumn}, {tableName}.{nameColumn} ({i++} / {values.Count}).";
 
                     PrintUtils.PrintRow(output, 0, 0);
 
-                    replacedName = s.Replace("'", "''");
-                    insertValues.Append($"('{replacedName}')");
+                    replacedName = values[id].Replace("'", "''");
+                    insertValues.Append($"({id}, '{replacedName}')");
 
                     if (values.Count == 1 || (j > 0 && (j % BatchQueryLimit == 0 || j == values.Count - 1)))
                     {
@@ -446,7 +408,7 @@ namespace LobitaDownloader
                         transaction.Commit();
 
                         transaction = conn.BeginTransaction();
-                        insertValues = new StringBuilder($"INSERT INTO {tableName}({columnName}) VALUES");
+                        insertValues = new StringBuilder($"INSERT INTO {tableName}({idColumn}, {nameColumn}) VALUES");
                     }
                     else
                     {
@@ -462,21 +424,6 @@ namespace LobitaDownloader
             }
 
             conn.Close();
-        }
-
-        private HashSet<string> ToUniqueSet(ICollection<List<string>> values)
-        {
-            HashSet<string> uniqueSet = new HashSet<string>();
-
-            foreach(var v in values)
-            {
-                foreach(string s in v)
-                {
-                    uniqueSet.Add(s);
-                }
-            }
-
-            return uniqueSet;
         }
 
         public bool IsConnected()

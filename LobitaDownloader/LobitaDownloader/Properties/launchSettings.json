@@ -2,7 +2,7 @@
   "profiles": {
     "LobitaDownloader": {
       "commandName": "Project",
-      "commandLineArgs": "update shindou_kojirou"
+      "commandLineArgs": "index 1000"
     }
   }
 }
