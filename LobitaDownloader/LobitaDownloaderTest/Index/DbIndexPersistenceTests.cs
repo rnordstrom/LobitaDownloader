@@ -145,8 +145,8 @@ namespace LobitaDownloader.Tests
         [TestMethod]
         public void TestCountPosts()
         {
-            database.CountCharacters();
-            database.CountSeries();
+            database.CountCharacterPosts(characters);
+            database.CountSeriesPosts(series, characters);
 
             string getTagLinksCount1 = $"SELECT post_count FROM tags WHERE name = '{tag1}'";
             string getTagLinksCount2 = $"SELECT post_count FROM tags WHERE name = '{tag2.Replace("'", "''")}'";

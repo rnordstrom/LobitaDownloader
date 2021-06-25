@@ -184,8 +184,8 @@ namespace LobitaDownloader
             _persistence.CleanSeries();
             _persistence.PersistSeries(seriesIndex);
 
-            _persistence.CountCharacters();
-            _persistence.CountSeries();
+            _persistence.CountCharacterPosts(characterIndex);
+            _persistence.CountSeriesPosts(seriesIndex, characterIndex);
 
             SwitchDatabase();
         }

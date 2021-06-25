@@ -108,106 +108,53 @@ namespace LobitaDownloader
             conn.Close();
         }
 
-        public void CountCharacters()
+        public void CountCharacterPosts(IDictionary<string, Character> index)
         {
-            string getTagLinksCount =
-                $"SELECT t.id, COUNT(l.id) " +
-                $"FROM tags AS t, tag_links AS tl, links AS l " +
-                $"WHERE t.id = tl.tag_id AND l.id = tl.link_id AND t.id IN (%) " +
-                $"GROUP BY t.id";
+            int count;
 
-            CountPosts("tags", "id", "post_count", getTagLinksCount);
+            foreach (string characterName in index.Keys)
+            {
+                count = index[characterName].Urls.Count;
+
+                UpdatePostCount(index[characterName].Id, count, "tags", "id", "post_count");
+            }
         }
 
-        public void CountSeries()
+        public void CountSeriesPosts(IDictionary<string, Series> seriesIndex, IDictionary<string, Character> characterIndex)
         {
-            string getSeriesLinksCount =
-                $"SELECT s.id, COUNT(l.id) " +
-                $"FROM tags AS t, series_tags AS st, series AS s, links AS l, tag_links AS tl " +
-                $"WHERE t.id = tl.tag_id AND l.id = tl.link_id AND t.id = st.tag_id AND st.series_id = s.id AND s.id IN (%) " +
-                $"GROUP BY s.id";
+            int count;
 
-            CountPosts("series", "id", "post_count", getSeriesLinksCount);
+            foreach (string seriesName in seriesIndex.Keys)
+            {
+                count = 0;
+
+                foreach (Character character in seriesIndex[seriesName].Characters)
+                {
+                    count += characterIndex[character.Name].Urls.Count;
+                }
+
+                UpdatePostCount(seriesIndex[seriesName].Id, count, "series", "id", "post_count");
+            }
         }
 
-        private void CountPosts(string tableName, string idColumn, string countColumn, string countQuery) // TODO: Perform these calculations based on in-memory content instead
+        private void UpdatePostCount(int id, int count, string tableName, string idColumn, string countColumn)
         {
             try
             {
-                string output = "Computing post counts...";
-                int tagsOffset = 0;
+                string output;
+                string updateCount;
+                MySqlCommand cmd;
 
-                PrintUtils.PrintRow(output, 0, 0);
                 conn.Open();
 
-                while (true)
-                {
-                    string getTagIDs = $"SELECT {idColumn} FROM {tableName} LIMIT {BatchQueryLimit} OFFSET {tagsOffset}";
-                    StringBuilder sb = new StringBuilder();
-                    List<int> ids = new List<int>(); 
-                    MySqlCommand cmd = new MySqlCommand(getTagIDs, conn);
+                output = $"Updating {idColumn} {id} with {countColumn} = {count} in table '{tableName}'.";
 
-                    cmd.CommandTimeout = TimeOut;
+                PrintUtils.PrintRow(output, 0, 0);
 
-                    MySqlDataReader rdr = cmd.ExecuteReader();
+                updateCount = $"UPDATE {tableName} SET {countColumn} = {count} WHERE {idColumn} = {id}";
+                cmd = new MySqlCommand(updateCount, conn);
 
-                    while (rdr.Read())
-                    {
-                        ids.Add((int)rdr[0]);
-                        sb.Append((int)rdr[0] + ",");
-                    }
-
-                    if (!rdr.HasRows)
-                    {
-                        break;
-                    }
-
-                    rdr.Close();
-
-                    sb.Remove(sb.Length - 1, 1);
-                    string countQueryUpdated = countQuery.Replace("%", sb.ToString());
-
-                    cmd = new MySqlCommand(countQueryUpdated, conn);
-
-                    cmd.CommandTimeout = TimeOut;
-
-                    string updateCount;
-                    var idCounts = new Dictionary<int, long>();
-                    rdr = cmd.ExecuteReader();
-
-                    while (rdr.Read())
-                    {
-                        idCounts.Add((int)rdr[0], (long)rdr[1]);
-                    }
-
-                    rdr.Close();
-
-                    foreach (int id in ids)
-                    {
-                        if (!idCounts.ContainsKey(id))
-                        {
-                            idCounts.Add(id, 0);
-                        }
-                    }
-
-                    foreach (var pair in idCounts)
-                    {
-                        output = $"Updating {idColumn} {pair.Key} with {countColumn} = {pair.Value} in table '{tableName}'.";
-
-                        PrintUtils.PrintRow(output, 0, 0);
-
-                        updateCount = $"UPDATE {tableName} SET {countColumn} = {pair.Value} WHERE {idColumn} = {pair.Key}";
-                        cmd = new MySqlCommand(updateCount, conn);
-
-                        cmd.ExecuteNonQuery();
-                    }
-
-                    tagsOffset += BatchQueryLimit;
-
-                    output = $"Processed {BatchQueryLimit} posts in table '{tableName}' ({tagsOffset} done).";
-
-                    PrintUtils.PrintRow(output, 0, 0);
-                }
+                cmd.ExecuteNonQuery();
             }
             catch (Exception e)
             {

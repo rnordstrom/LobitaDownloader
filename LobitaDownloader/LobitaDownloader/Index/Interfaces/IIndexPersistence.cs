@@ -9,8 +9,8 @@ namespace LobitaDownloader
         public void PersistSeries(IDictionary<string, Series> index);
         public void CleanCharacters();
         public void CleanSeries();
-        public void CountCharacters();
-        public void CountSeries();
+        public void CountCharacterPosts(IDictionary<string, Character> index);
+        public void CountSeriesPosts(IDictionary<string, Series> seriesIndex, IDictionary<string, Character> characterIndex);
         public bool IsConnected();
     }
 }
