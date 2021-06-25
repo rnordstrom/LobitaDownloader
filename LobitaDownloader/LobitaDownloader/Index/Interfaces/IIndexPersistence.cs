@@ -1,15 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using LobitaDownloader.Index.Models;
+using System.Collections.Generic;
 
 namespace LobitaDownloader
 {
     interface IIndexPersistence
     {
-        public void PersistTagLinks(IDictionary<string, List<string>> index);
-        public void PersistSeriesTags(IDictionary<string, HashSet<string>> index);
-        public void CleanTagLinks();
-        public void CleanSeries();
-        public void CountTagLinks();
-        public void CountSeriesLinks();
+        public void PersistCharacters(IDictionary<string, Character> characterIndex);
+        public void Clean();
         public bool IsConnected();
     }
 }

@@ -6,18 +6,6 @@ namespace LobitaDownloader.Tests
     public class ConfigTests
     {
         [TestMethod]
-        [Ignore]
-        public void TestCheckAutoMode()
-        {
-            IConfigManager cm = new XmlConfigManager(Resources.TestDirectory, Resources.ConfigFile);
-
-            foreach (string cmd in Resources.ImageCmdHandles)
-            {
-                Assert.IsTrue(cm.CheckAutoMode(cmd) == AutoMode.AUTO || cm.CheckAutoMode(cmd) == AutoMode.MANUAL);
-            }
-        }
-
-        [TestMethod]
         public void TestGetSetByName()
         {
             IConfigManager cm = new XmlConfigManager(Resources.TestDirectory, Resources.ConfigFile);

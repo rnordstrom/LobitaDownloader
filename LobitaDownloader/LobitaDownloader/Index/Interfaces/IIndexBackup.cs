@@ -1,16 +1,16 @@
-﻿using System.Collections.Generic;
+﻿using LobitaDownloader.Index.Models;
+using System.Collections.Generic;
 
 namespace LobitaDownloader
 {
     interface IIndexBackup
     {
-        public void MarkForUpdate(List<string> tagNames);
-        public void BackupTagLinks(IDictionary<string, List<string>> index);
-        public void BackupSeriesTags(IDictionary<string, HashSet<string>> index);
-        public void BackupTagNames(List<string> tagNames);
-        public void BackupSeriesNames(List<string> seriesNames);
-        public IDictionary<string, List<string>> GetTagIndex(ModificationStatus status, int batchSize = -1);
-        public IDictionary<string, HashSet<string>> GetSeriesIndex();
+        public void MarkForUpdate(List<string> characterNames);
+        public void BackupCharacterData(IDictionary<string, Character> index);
+        public void IndexCharacters(IDictionary<string, Character> index);
+        public void IndexSeries(IDictionary<string, Series> index);
+        public IDictionary<string, Character> GetCharacterIndex(ModificationStatus status, int batchSize = -1);
+        public IDictionary<string, Series> GetSeriesIndex();
         public bool IsConnected();
     }
 }
