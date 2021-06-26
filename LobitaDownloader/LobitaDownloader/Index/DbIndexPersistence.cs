@@ -59,6 +59,9 @@ namespace LobitaDownloader
                 deleteBatch = $"DELETE FROM {tableName} LIMIT {BatchQueryLimit}";
 
                 cmd = new MySqlCommand(countQuery, conn);
+
+                cmd.CommandTimeout = TimeOut;
+
                 rdr = cmd.ExecuteReader();
 
                 while (rdr.Read())
@@ -149,6 +152,7 @@ namespace LobitaDownloader
                     cmd = new MySqlCommand(insertRelations.ToString(), conn);
 
                     cmd.CommandTimeout = TimeOut;
+
                     cmd.ExecuteNonQuery();
                     transaction.Commit();
 
@@ -224,6 +228,8 @@ namespace LobitaDownloader
                         insertValues.Append(";");
 
                         cmd = new MySqlCommand(insertValues.ToString(), conn);
+
+                        cmd.CommandTimeout = TimeOut;
 
                         cmd.ExecuteNonQuery();
                         transaction.Commit();
