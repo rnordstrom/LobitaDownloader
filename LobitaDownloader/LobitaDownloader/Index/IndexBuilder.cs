@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Xml;
@@ -19,10 +18,11 @@ namespace LobitaDownloader
         private const string DanbooruUrl = "https://danbooru.donmai.us/";
         private string urlToUse;
         private int numThreads = 0;
+        private int batchSize;
         private const int TagsLimit = 1000;
         private const int PostsLimit = 200;
         private const int SeriesLimit = 1;
-        private const int BackoffLimitSeconds = 320;
+        private const int BackoffLimitSeconds = 60;
         private IDictionary<string, Character> characterIndex = new ConcurrentDictionary<string, Character>();
         private IDictionary<string, Series> seriesIndex = new ConcurrentDictionary<string, Series>();
 
@@ -40,6 +40,7 @@ namespace LobitaDownloader
             client = new HttpXmlClient(urlToUse);
 
             numThreads = int.Parse(_config.GetItemByName("NumThreads"));
+            batchSize = int.Parse(_config.GetItemByName("BatchSize"));
         }
 
         public void Index(int tagCount)
@@ -55,9 +56,6 @@ namespace LobitaDownloader
 
             Console.Clear();
             Console.WriteLine("Building index...");
-
-            Stopwatch watch = new Stopwatch();
-            watch.Start();
 
             // Fetch character tags
             do
@@ -126,22 +124,14 @@ namespace LobitaDownloader
             _backup.IndexSeries(seriesIndex);
 
             // Fetch data from external source and save locally
+            _backup.DeleteDataDocuments();
             Download();
-
-            watch.Stop();
-
-            TimeSpan timespan = TimeSpan.FromMilliseconds(watch.ElapsedMilliseconds);
-            string timeString = string.Format("{0:D2}h:{1:D2}m:{2:D2}s:{3:D3}ms", timespan.Hours, timespan.Minutes, timespan.Seconds, timespan.Milliseconds);
-
-            Resources.SystemLogger.Log($"Downloaded {characterIndex.Keys.Count} tags in {timeString} using {numThreads} thread(s).");
         }
 
         public void Download()
         {
             Console.Clear();
             Console.WriteLine("Downloading data...");
-
-            int batchSize = int.Parse(_config.GetItemByName("BatchSize"));
 
             while (true)
             {
@@ -162,8 +152,11 @@ namespace LobitaDownloader
                 Console.Clear();
                 Console.WriteLine("Writing to backups...");
 
-                _backup.BackupCharacterData(characterIndex);
+                _backup.WriteCharacterData(characterIndex);
+                _backup.MarkAsDone(characterIndex.Keys.ToList());
             }
+
+            _backup.ResetDocumentStatus();
 
             Persist();
         }
@@ -173,10 +166,22 @@ namespace LobitaDownloader
             Console.Clear();
             Console.WriteLine("Persisting to database from backups...");
 
-            characterIndex = _backup.GetCharacterIndex(ModificationStatus.DONE);
-
             _persistence.Clean();
-            _persistence.PersistCharacters(characterIndex);
+
+            while (_backup.ReadCharacterData(PersistenceStatus.SAVED, batchSize, out characterIndex))
+            {
+                _backup.MarkAsUnsaved(characterIndex.Keys.ToList()); // Reset status
+            }
+
+            _backup.ResetDocumentStatus();
+
+            while (_backup.ReadCharacterData(PersistenceStatus.UNSAVED, batchSize, out characterIndex))
+            {
+                _persistence.PersistCharacters(characterIndex);
+                _backup.MarkAsSaved(characterIndex.Keys.ToList());
+            }
+
+            Console.WriteLine("Persistence complete.");
 
             SwitchDatabase();
         }
@@ -188,7 +193,7 @@ namespace LobitaDownloader
 
             _backup.MarkForUpdate(tagNames);
 
-            characterIndex = _backup.GetCharacterIndex(ModificationStatus.UNMODIFIED);
+            characterIndex = _backup.GetCharacterIndex(ModificationStatus.UNMODIFIED, batchSize);
             ClearTagIndex();
 
             if (characterIndex.Count == 0)
@@ -205,7 +210,7 @@ namespace LobitaDownloader
             Console.Clear();
             Console.WriteLine("Writing to backups...");
 
-            _backup.BackupCharacterData(characterIndex);
+            _backup.WriteCharacterData(characterIndex);
 
             Persist();
         }
@@ -293,7 +298,7 @@ namespace LobitaDownloader
                 {
                     try
                     {
-                        backoffSeconds = 10;
+                        backoffSeconds = 15;
                         output = $"Thread {threadId}: processing tag '{characterName}' ({i + 1} / {tagNames.Count}; page #{j}).";
 
                         PrintUtils.PrintRow(output, 0, threadId);
@@ -389,22 +394,6 @@ namespace LobitaDownloader
 
             _config.ChangeItemByName(currentName, nextDatabase);
             _config.ChangeItemByName(nextName, temp);
-        }
-
-        private void ClearBelow()
-        {
-            int remainder = Console.WindowHeight - numThreads;
-
-            if (remainder < 0)
-            {
-                remainder = 0;
-            }
-
-            for (int i = numThreads; i < numThreads + remainder; i++)
-            {
-                Console.SetCursorPosition(0, i);
-                Console.Write(new string(' ', Console.WindowWidth));
-            }
         }
     }
 }

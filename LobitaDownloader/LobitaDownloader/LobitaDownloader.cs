@@ -18,6 +18,12 @@ namespace LobitaDownloader
         UNMODIFIED
     }
 
+    public enum PersistenceStatus
+    {
+        SAVED,
+        UNSAVED
+    }
+
     public abstract class FileData
     {
         public string FileExt { get; }
@@ -86,7 +92,7 @@ namespace LobitaDownloader
     {
         static int Main(string[] args)
         {
-            string usageString = "Usage: LobitaDownloader index <tag_count> | download | persist | update [tagname...] | clean";
+            string usageString = "Usage: LobitaDownloader index <tag_count> | download | persist | clean";
 
             try
             {
@@ -128,26 +134,6 @@ namespace LobitaDownloader
                         if (CheckConnections(persistence, backup))
                         {
                             indexBuilder.Persist();
-                        }
-                        else
-                        {
-                            return -1;
-                        }
-                        break;
-                    case "update":
-                        if (CheckConnections(persistence, backup))
-                        {
-                            if (args.Length < 2)
-                            {
-                                Console.WriteLine("Please specify one or more tags.");
-                                return -1;
-                            }
-                            List<string> tagNames = new List<string>();
-                            for (int i = 1; i < args.Length; i++)
-                            {
-                                tagNames.Add(args[i]);
-                            }
-                            indexBuilder.Update(tagNames);
                         }
                         else
                         {

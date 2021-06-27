@@ -99,9 +99,9 @@ namespace LobitaDownloader
 
         public void PersistCharacters(IDictionary<string, Character> index)
         {
-            PersistColumnBatch(index.Values, "tags", "id", "name");
+            PersistColumnCount(index.Values, "tags", "id", "name", "post_count");
             PersistColumnBatch(ToUniqueSet(index.Values.SelectMany(c => c.Urls).ToList()), "links", "id", "url");
-            PersistColumnBatch(ToUniqueSet(index.Values.SelectMany(c => c.Series).ToList()), "series", "id", "name");
+            PersistColumnCount(ToUniqueSet(index.Values.SelectMany(c => c.Series).ToList()), "series", "id", "name", "post_count");
 
             string output;
             int i = 1;
@@ -124,7 +124,7 @@ namespace LobitaDownloader
         {
             MySqlTransaction transaction = null;
             MySqlCommand cmd;
-            string queryString = $"INSERT INTO {tableName}({charIdCol}, {relIdCol}) VALUES";
+            string queryString = $"INSERT IGNORE INTO {tableName}({charIdCol}, {relIdCol}) VALUES";
 
             try
             {
@@ -175,6 +175,46 @@ namespace LobitaDownloader
             conn.Close();
         }
 
+        private void PersistColumnCount<T>(ICollection<T> objects, string tableName, string idColumn, string nameColumn, string countColumn) where T : ModelBase, Model
+        {
+            string replacedName;
+            string output;
+            MySqlCommand cmd;
+            string insertQuery;
+            int postCount;
+            int i = 1;
+
+            try
+            {
+                conn.Open();
+
+                foreach (T o in objects)
+                {
+                    output = $"Writing values to columns {tableName}.{idColumn}, {tableName}.{nameColumn}, {tableName}.{countColumn} ({i++} / {objects.Count}).";
+
+                    PrintUtils.PrintRow(output, 0, 0);
+
+                    replacedName = o.GetName().Replace("'", "''");
+
+                    postCount = o.GetCount();
+                    insertQuery = $"INSERT INTO {tableName}({idColumn}, {nameColumn}, {countColumn}) " +
+                        $"VALUES({o.Id}, '{replacedName}', {postCount}) " +
+                        $"ON DUPLICATE KEY UPDATE {countColumn}={countColumn}+{postCount};";
+
+                    cmd = new MySqlCommand(insertQuery, conn);
+                    cmd.CommandTimeout = TimeOut;
+
+                    cmd.ExecuteNonQuery();
+                }
+            }
+            catch (Exception e)
+            {
+                PrintUtils.Report(e);
+            }
+
+            conn.Close();
+        }
+
         private void PersistColumnBatch<T>(ICollection<T> objects, string tableName, string idColumn, string nameColumn) where T : ModelBase, Model
         {
             string replacedName;
@@ -182,7 +222,6 @@ namespace LobitaDownloader
             MySqlCommand cmd;
             string insertQuery;
             StringBuilder insertValues = new StringBuilder();
-            int postCount;
             int i = 1;
             int j = 0;
 
@@ -199,29 +238,14 @@ namespace LobitaDownloader
 
                     replacedName = o.GetName().Replace("'", "''");
 
-                    try
+                    insertQuery = $"INSERT IGNORE INTO {tableName}({idColumn}, {nameColumn}) VALUES";
+
+                    if (j == 0)
                     {
-                        postCount = o.GetCount();
-                        insertQuery = $"INSERT INTO {tableName}({idColumn}, {nameColumn}, post_count) VALUES";
-
-                        if (j == 0)
-                        {
-                            insertValues.Append(insertQuery);
-                        }
-
-                        insertValues.Append($"({o.Id}, '{replacedName}', {postCount})");
+                        insertValues.Append(insertQuery);
                     }
-                    catch (Exception)
-                    {
-                        insertQuery = $"INSERT INTO {tableName}({idColumn}, {nameColumn}) VALUES";
 
-                        if (j == 0)
-                        {
-                            insertValues.Append(insertQuery);
-                        }
-
-                        insertValues.Append($"({o.Id}, '{replacedName}')");
-                    }
+                    insertValues.Append($"({o.Id}, '{replacedName}')");
 
                     if (objects.Count == 1 || (j > 0 && (j % BatchQueryLimit == 0 || j == objects.Count - 1)))
                     {
