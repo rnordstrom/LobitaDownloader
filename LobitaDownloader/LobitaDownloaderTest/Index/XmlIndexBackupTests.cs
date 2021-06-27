@@ -1,6 +1,8 @@
 ﻿using LobitaDownloader.Index.Models;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 
 namespace LobitaDownloader.Tests
 {
@@ -13,12 +15,16 @@ namespace LobitaDownloader.Tests
         string tag1 = "gawr_gura";
         string tag2 = "ninomae_ina'nis";
         string seriesName = "hololive";
+        int batchSize;
+        string backupLocation;
 
         [TestInitialize]
         public void Setup()
         {
             IConfigManager configManager = new XmlConfigManager(Resources.TestDirectory, Resources.ConfigFile);
             backup = new XmlIndexBackup(configManager);
+            batchSize = int.Parse(configManager.GetItemByName("BatchSize"));
+            backupLocation = configManager.GetItemByName("BackupLocation");
 
             Url url1 = new Url(1, "1.png");
             Url url2 = new Url(2, "2.png");
@@ -44,43 +50,54 @@ namespace LobitaDownloader.Tests
         }
 
         [TestMethod]
-        public void BackupNamesAndReadTest()
+        public void BackupIndexAndReadTest()
         {
             backup.IndexCharacters(characterIndex);
             backup.IndexSeries(seriesIndex);
 
             Dictionary<string, Character> readCharacters
-                = (Dictionary<string, Character>)backup.GetCharacterIndex(ModificationStatus.UNMODIFIED);
+                = (Dictionary<string, Character>)backup.GetCharacterIndex(ModificationStatus.UNMODIFIED, 100);
             Dictionary<string, Series> readSeries
                 = (Dictionary<string, Series>)backup.GetSeriesIndex();
 
             CollectionAssert.AreEqual(characterIndex.Keys, readCharacters.Keys);
             CollectionAssert.AreEqual(seriesIndex.Keys, readSeries.Keys);
-            Assert.IsTrue(readCharacters.Values.Count > 0);
-            Assert.IsTrue(readSeries.Values.Count > 0);
         }
 
         [TestMethod]
-        public void BackupAndReadTest()
+        public void BackupDataAndReadTest()
         {
-            Backup();
+            IDictionary<string, Character> tempDict = new Dictionary<string, Character>(characterIndex);
 
-            Dictionary<string, Character> readCharacters
-                = (Dictionary<string, Character>)backup.GetCharacterIndex(ModificationStatus.DONE);
-            Dictionary<string, Series> readSeries
-                = (Dictionary<string, Series>)backup.GetSeriesIndex();
+            backup.DeleteDataDocuments();
+            backup.IndexCharacters(tempDict);
 
-            CollectionAssert.AreEqual(characterIndex.Keys, readCharacters.Keys);
-            CollectionAssert.AreEqual(seriesIndex.Keys, readSeries.Keys);
+            IDictionary<string, Character> readCharacters;
+
+            while (true)
+            {
+                tempDict = (Dictionary<string, Character>)backup.GetCharacterIndex(ModificationStatus.UNMODIFIED, batchSize);
+
+                if (tempDict.Count == 0)
+                {
+                    break;
+                }
+
+                backup.WriteCharacterData(tempDict);
+                backup.MarkAsDone(tempDict.Keys.ToList());
+            }
+
+            backup.ResetDocumentStatus();
+
+            backup.ReadCharacterData(PersistenceStatus.UNSAVED, batchSize, out readCharacters);
 
             Assert.AreEqual(characterIndex[tag1].Id, readCharacters[tag1].Id);
-            Assert.AreEqual(characterIndex[tag2].Id, readCharacters[tag2].Id);
-
             Assert.AreEqual(characterIndex[tag1].Name, readCharacters[tag1].Name);
-            Assert.AreEqual(characterIndex[tag2].Name, readCharacters[tag2].Name);
 
-            Assert.AreEqual(characterIndex[tag1].PostCount, readCharacters[tag1].PostCount);
-            Assert.AreEqual(characterIndex[tag2].PostCount, readCharacters[tag2].PostCount);
+            backup.ReadCharacterData(PersistenceStatus.UNSAVED, batchSize, out readCharacters);
+
+            Assert.AreEqual(characterIndex[tag2].Id, readCharacters[tag2].Id);
+            Assert.AreEqual(characterIndex[tag2].Name, readCharacters[tag2].Name);
         }
 
         [TestMethod()]
@@ -92,13 +109,6 @@ namespace LobitaDownloader.Tests
         [TestMethod]
         public void MarkForUpdateTest()
         {
-            Backup();
-
-            Dictionary<string, Character> readCharacters
-                = (Dictionary<string, Character>)backup.GetCharacterIndex(ModificationStatus.DONE);
-
-            CollectionAssert.AreEqual(characterIndex.Keys, readCharacters.Keys);
-
             List<string> tagNames = new List<string>();
 
             foreach (string s in characterIndex.Keys)
@@ -106,11 +116,36 @@ namespace LobitaDownloader.Tests
                 tagNames.Add(s);
             }
 
-            backup.MarkForUpdate(tagNames);
+            Backup();
+            backup.MarkAsDone(tagNames);
 
-            readCharacters = (Dictionary<string, Character>)backup.GetCharacterIndex(ModificationStatus.UNMODIFIED);
+            Dictionary<string, Character> readCharacters
+                = (Dictionary<string, Character>)backup.GetCharacterIndex(ModificationStatus.DONE, 100);
 
             CollectionAssert.AreEqual(characterIndex.Keys, readCharacters.Keys);
+
+
+            backup.MarkForUpdate(tagNames);
+
+            readCharacters = (Dictionary<string, Character>)backup.GetCharacterIndex(ModificationStatus.UNMODIFIED, 100);
+
+            CollectionAssert.AreEqual(characterIndex.Keys, readCharacters.Keys);
+        }
+
+        [TestMethod]
+        public void DeleteDocumentsTest()
+        {
+            Backup();
+
+            string[] files = Directory.GetFiles(backupLocation);
+
+            Assert.IsTrue(files.Any(s => s.Contains("data")));
+
+            backup.DeleteDataDocuments();
+
+            files = Directory.GetFiles(backupLocation);
+
+            Assert.IsFalse(files.Any(s => s.Contains("data")));
         }
 
         private void Backup()
@@ -118,7 +153,7 @@ namespace LobitaDownloader.Tests
             backup.IndexCharacters(characterIndex);
             backup.IndexSeries(seriesIndex);
 
-            backup.BackupCharacterData(characterIndex);
+            backup.WriteCharacterData(characterIndex);
         }
     }
 }
