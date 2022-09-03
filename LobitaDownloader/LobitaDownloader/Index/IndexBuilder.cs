@@ -164,7 +164,7 @@ namespace LobitaDownloader
         public void Persist()
         {
             Console.Clear();
-            Console.WriteLine("Persisting to database from backups...");
+            Console.WriteLine("Persisting to database from backups (full refresh)...");
 
             _persistence.Clean();
 
@@ -180,6 +180,24 @@ namespace LobitaDownloader
                 _persistence.PersistCharacters(characterIndex);
                 _backup.MarkAsSaved(characterIndex.Keys.ToList());
             }
+
+            Console.WriteLine("Persistence complete.");
+
+            SwitchDatabase();
+        }
+
+        public void Recover()
+        {
+            Console.Clear();
+            Console.WriteLine("Persisting to database from backups (recovery-mode)...");
+
+            while (_backup.ReadCharacterData(PersistenceStatus.UNSAVED, batchSize, out characterIndex))
+            {
+                _persistence.PersistCharacters(characterIndex);
+                _backup.MarkAsSaved(characterIndex.Keys.ToList());
+            }
+
+            _backup.ResetDocumentStatus();
 
             Console.WriteLine("Persistence complete.");
 
