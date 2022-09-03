@@ -92,7 +92,7 @@ namespace LobitaDownloader
     {
         static int Main(string[] args)
         {
-            string usageString = "Usage: LobitaDownloader index <tag_count> | download | persist | clean";
+            string usageString = "Usage: LobitaDownloader index <tag_count> | download | persist_full | persist_recover | clean";
 
             try
             {
@@ -130,10 +130,20 @@ namespace LobitaDownloader
                             return -1;
                         }
                         break;
-                    case "persist":
+                    case "persist_full":
                         if (CheckConnections(persistence, backup))
                         {
                             indexBuilder.Persist();
+                        }
+                        else
+                        {
+                            return -1;
+                        }
+                        break;
+                    case "persist_recover":
+                        if (CheckConnections(persistence, backup))
+                        {
+                            indexBuilder.Recover();
                         }
                         else
                         {
